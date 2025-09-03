@@ -1,10 +1,17 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: '/substance/', // GitHub Pages repository name
   root: './',
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: './index.html',
+        demo: './demo.html'
+      }
+    }
   },
   server: {
     port: 3000,
