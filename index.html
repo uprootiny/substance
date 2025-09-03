@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Substance: Voxel Flower Visualization</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 100%);
+            overflow: hidden;
+            color: #fff;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            backdrop-filter: blur(10px);
+            min-width: 300px;
+        }
+
+        #ui h1 {
+            color: #ff6b6b;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px #ff6b6b;
+        }
+
+        #ui p {
+            color: #aaa;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .control-group {
+            margin: 15px 0;
+        }
+
+        .control-group label {
+            display: block;
+            color: #ccc;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .control-group select, .control-group button {
+            width: 100%;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            border-radius: 5px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .control-group button {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-group button:hover {
+            background: rgba(255, 107, 107, 0.2);
+            border-color: #ff6b6b;
+        }
+
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            backdrop-filter: blur(10px);
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            min-width: 200px;
+        }
+
+        #stats .stat-line {
+            color: #4ecdc4;
+            margin: 5px 0;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            text-align: center;
+            color: #ff6b6b;
+            font-size: 1.2em;
+        }
+
+        .spinner {
+            border: 2px solid #333;
+            border-radius: 50%;
+            border-top: 2px solid #ff6b6b;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Initializing Voxel Garden...</p>
+        </div>
+
+        <div id="canvas-container"></div>
+
+        <div id="ui">
+            <h1>🌸 Substance Voxel Flowers</h1>
+            <p>Transform tmux sessions into flowering voxel gardens</p>
+            
+            <div class="control-group">
+                <label for="sessionSelect">Tmux Session:</label>
+                <select id="sessionSelect">
+                    <option value="sample">Sample Thread Data</option>
+                    <option value="live">Live Tmux Data</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="growthMode">Growth Mode:</label>
+                <select id="growthMode">
+                    <option value="organic">Organic Growth</option>
+                    <option value="geometric">Geometric Patterns</option>
+                    <option value="fractal">Fractal Blooming</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <button id="generateBtn">🌱 Generate Flower</button>
+                <button id="resetBtn">🔄 Reset Garden</button>
+                <button id="pauseBtn">⏸ Pause Physics</button>
+            </div>
+        </div>
+
+        <div id="stats">
+            <div class="stat-line">Voxels: <span id="voxelCount">0</span></div>
+            <div class="stat-line">Physics Bodies: <span id="physicsCount">0</span></div>
+            <div class="stat-line">FPS: <span id="fps">60</span></div>
+            <div class="stat-line">Flowers: <span id="flowerCount">0</span></div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/index.js"></script>
+</body>
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Substance: Voxel Flower Visualization - DEMO</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 100%);
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        #demo-banner {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 107, 107, 0.9);
+            padding: 15px 30px;
+            border-radius: 25px;
+            text-align: center;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+        }
+
+        #demo-banner h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        #demo-banner p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        #visualization-preview {
+            width: 80%;
+            max-width: 800px;
+            height: 60%;
+            background: linear-gradient(45deg, 
+                rgba(255, 107, 107, 0.1) 0%, 
+                rgba(76, 201, 196, 0.1) 25%,
+                rgba(69, 183, 209, 0.1) 50%,
+                rgba(150, 206, 180, 0.1) 75%,
+                rgba(253, 203, 110, 0.1) 100%);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .flower-simulation {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flower-demo {
+            width: 200px;
+            height: 200px;
+            position: relative;
+            animation: gentle-rotate 20s linear infinite;
+        }
+
+        .petal {
+            position: absolute;
+            width: 20px;
+            height: 60px;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            transform-origin: 50% 90%;
+        }
+
+        .quadruple .petal {
+            background: linear-gradient(to top, #ff6b6b, #ff8e8e);
+        }
+
+        .pentagonal .petal {
+            background: linear-gradient(to top, #4ecdc4, #6ee0d8);
+        }
+
+        .rosaceae .petal {
+            background: linear-gradient(to top, #fd79a8, #fda8c8);
+        }
+
+        .fractal .petal {
+            background: linear-gradient(to top, #a29bfe, #c7c2fe);
+        }
+
+        .organic .petal {
+            background: linear-gradient(to top, #00b894, #00d0a6);
+        }
+
+        .stem {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 100px;
+            background: linear-gradient(to top, #2d5a27, #4a8c3e);
+            border-radius: 3px;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 107, 107, 0.3);
+            border-color: #ff6b6b;
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.5);
+        }
+
+        .control-btn.active {
+            background: rgba(255, 107, 107, 0.5);
+            border-color: #ff6b6b;
+        }
+
+        #info-panel {
+            position: absolute;
+            top: 120px;
+            right: 20px;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        #info-panel h3 {
+            color: #ff6b6b;
+            margin-bottom: 10px;
+        }
+
+        #info-panel p {
+            color: #ccc;
+            font-size: 0.9em;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            color: #4ecdc4;
+            margin: 5px 0;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .feature-list li::before {
+            content: "🌸";
+            position: absolute;
+            left: 0;
+        }
+
+        @keyframes gentle-rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes petal-sway {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(2deg) scale(1.05); }
+        }
+
+        .petal {
+            animation: petal-sway 3s ease-in-out infinite;
+        }
+
+        #loading-text {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #4ecdc4;
+            font-size: 1.1em;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="demo-banner">
+            <h1>🌸 Substance: Voxel Flower Garden</h1>
+            <p>Transform tmux sessions into blooming computational gardens</p>
+        </div>
+
+        <div id="visualization-preview">
+            <div class="flower-simulation">
+                <div id="current-flower" class="flower-demo quadruple">
+                    <div class="stem"></div>
+                    <!-- Petals will be generated by JavaScript -->
+                </div>
+            </div>
+            <div id="loading-text">🌱 Growing semantic flowers from narrative threads...</div>
+        </div>
+
+        <div id="controls">
+            <button class="control-btn active" data-symmetry="quadruple">🔷 Quadruple Helix</button>
+            <button class="control-btn" data-symmetry="pentagonal">⭐ Pentagonal</button>
+            <button class="control-btn" data-symmetry="rosaceae">🌹 Rosaceae</button>
+            <button class="control-btn" data-symmetry="fractal">❄️ Fractal</button>
+            <button class="control-btn" data-symmetry="organic">🌿 Organic</button>
+        </div>
+
+        <div id="info-panel">
+            <h3>🔬 System Features</h3>
+            <ul class="feature-list">
+                <li>3D voxel physics engine</li>
+                <li>Semantic text analysis</li>
+                <li>Real-time tmux integration</li>
+                <li>Multiple flower symmetries</li>
+                <li>Interactive growth patterns</li>
+                <li>Narrative coherence mapping</li>
+                <li>Temporal decay dynamics</li>
+                <li>Magnetic field interactions</li>
+            </ul>
+            
+            <h3>🌸 Current Pattern</h3>
+            <p id="pattern-description">Quadruple helix symmetry inspired by the Emacs-Claude interface paradigm, featuring four-fold branching patterns that reflect the structured nature of code and documentation workflows.</p>
+        </div>
+    </div>
+
+    <script>
+        const flowerContainer = document.getElementById('current-flower');
+        const patternDescription = document.getElementById('pattern-description');
+        
+        const symmetryConfigs = {
+            quadruple: {
+                petals: 16,
+                layers: 4,
+                description: "Quadruple helix symmetry inspired by the Emacs-Claude interface paradigm, featuring four-fold branching patterns that reflect the structured nature of code and documentation workflows."
+            },
+            pentagonal: {
+                petals: 20,
+                layers: 4,
+                description: "Five-fold symmetry following golden ratio proportions, mimicking natural growth patterns found in organic systems and fibonacci spirals."
+            },
+            rosaceae: {
+                petals: 24,
+                layers: 6,
+                description: "Intricate rose-like patterns with multiple overlapping petal layers, representing the complex beauty of detailed narrative structures."
+            },
+            fractal: {
+                petals: 18,
+                layers: 5,
+                description: "Self-similar recursive patterns that scale infinitely, reflecting the nested nature of complex thought processes and recursive algorithms."
+            },
+            organic: {
+                petals: 15,
+                layers: 3,
+                description: "Asymmetric natural patterns with organic imperfections, representing the wild creativity and unpredictable flow of human-AI interaction."
+            }
+        };
+
+        function generateFlower(symmetryType) {
+            const config = symmetryConfigs[symmetryType];
+            flowerContainer.className = `flower-demo ${symmetryType}`;
+            
+            // Clear existing petals
+            const existingPetals = flowerContainer.querySelectorAll('.petal');
+            existingPetals.forEach(petal => petal.remove());
+            
+            // Generate new petals
+            for (let layer = 0; layer < config.layers; layer++) {
+                const petalsInLayer = Math.floor(config.petals / config.layers);
+                const layerRadius = 60 + (layer * 20);
+                
+                for (let i = 0; i < petalsInLayer; i++) {
+                    const petal = document.createElement('div');
+                    petal.className = 'petal';
+                    
+                    let angle;
+                    if (symmetryType === 'organic') {
+                        angle = (Math.random() * 360);
+                    } else if (symmetryType === 'pentagonal') {
+                        angle = (i / petalsInLayer) * 360 + (layer * 72);
+                    } else if (symmetryType === 'quadruple') {
+                        angle = (i / petalsInLayer) * 360 + (layer * 45);
+                    } else {
+                        angle = (i / petalsInLayer) * 360 + (layer * 30);
+                    }
+                    
+                    const x = Math.cos(angle * Math.PI / 180) * layerRadius;
+                    const y = Math.sin(angle * Math.PI / 180) * layerRadius;
+                    
+                    petal.style.left = `calc(50% + ${x}px)`;
+                    petal.style.top = `calc(50% + ${y}px)`;
+                    petal.style.transform = `rotate(${angle + 90}deg)`;
+                    petal.style.animationDelay = `${layer * 0.3 + i * 0.1}s`;
+                    
+                    flowerContainer.appendChild(petal);
+                }
+            }
+            
+            // Update description
+            patternDescription.textContent = config.description;
+        }
+
+        // Event listeners for controls
+        document.querySelectorAll('.control-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const symmetry = btn.dataset.symmetry;
+                generateFlower(symmetry);
+            });
+        });
+
+        // Auto-cycle through patterns every 8 seconds
+        const patterns = ['quadruple', 'pentagonal', 'rosaceae', 'fractal', 'organic'];
+        let currentIndex = 0;
+
+        setInterval(() => {
+            currentIndex = (currentIndex + 1) % patterns.length;
+            const pattern = patterns[currentIndex];
+            
+            // Update active button
+            document.querySelectorAll('.control-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.symmetry === pattern);
+            });
+            
+            generateFlower(pattern);
+        }, 8000);
+
+        // Initialize with quadruple pattern
+        generateFlower('quadruple');
+
+        // Simulate loading completion after 3 seconds
+        setTimeout(() => {
+            document.getElementById('loading-text').textContent = '🌺 Garden blooming with semantic beauty...';
+        }, 3000);
+
+        setTimeout(() => {
+            document.getElementById('loading-text').textContent = '✨ Click patterns above to explore different symmetries';
+        }, 6000);
+    </script>
+</body>
+</html>
