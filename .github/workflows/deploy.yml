@@ -32,10 +32,11 @@ jobs:
         
     - name: 📦 Install dependencies
       run: |
+        npm cache clean --force
         if [ -f package-lock.json ]; then
-          npm ci
+          npm ci --prefer-offline --no-audit
         else
-          npm install
+          npm install --prefer-offline --no-audit
         fi
       
     - name: 🏗️ Build Vite application

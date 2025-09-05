@@ -170,6 +170,7 @@
                 <button id="generateBtn">🌱 Generate Flower</button>
                 <button id="resetBtn">🔄 Reset Garden</button>
                 <button id="physicsBtn">⚡ Toggle Physics</button>
+                <button id="analyzeBtn">🔬 Fractional Analysis</button>
             </div>
         </div>
 
@@ -197,6 +198,10 @@
                 this.voxels = [];
                 this.flowers = [];
                 this.physicsEnabled = true;
+                
+                // Fractional analysis data
+                this.analysisData = null;
+                this.fractionalResults = null;
                 
                 this.init();
             }
@@ -313,6 +318,10 @@
                     this.physicsEnabled = !this.physicsEnabled;
                     const btn = document.getElementById('physicsBtn');
                     btn.textContent = this.physicsEnabled ? '⚡ Physics ON' : '⏸ Physics OFF';
+                });
+                
+                document.getElementById('analyzeBtn').addEventListener('click', () => {
+                    this.runFractionalAnalysis();
                 });
             }
             
@@ -557,6 +566,254 @@
                 document.getElementById('voxelCount').textContent = this.voxels.length;
                 document.getElementById('physicsCount').textContent = this.world.bodies.length;
                 document.getElementById('flowerCount').textContent = this.flowers.length;
+            }
+            
+            runFractionalAnalysis() {
+                console.log('🔬 Running Fractional FFT Analysis...');
+                
+                // Generate mock session data based on current garden state
+                const sessionData = this.generateMockSessionData();
+                
+                try {
+                    // Simulate fractional analysis (would use actual FractionalFFT in full implementation)
+                    const analysis = this.simulateFractionalAnalysis(sessionData);
+                    
+                    // Display results
+                    this.displayAnalysisResults(analysis);
+                    
+                    // Apply visual effects based on analysis
+                    this.applyAnalysisVisualization(analysis);
+                    
+                } catch (error) {
+                    console.error('Analysis failed:', error);
+                    alert('🔬 Fractional analysis encountered an error. Check console for details.');
+                }
+            }
+            
+            generateMockSessionData() {
+                const threads = [];
+                
+                // Generate threads based on current flowers
+                this.flowers.forEach((flower, index) => {
+                    const thread = {
+                        id: `flower-thread-${index}`,
+                        content: `Generated ${flower.symmetry} flower with ${flower.voxelCount} voxels using physics simulation`,
+                        timestamp: Date.now() - (index * 30000), // 30 seconds apart
+                        interactions: Math.floor(Math.random() * 20) + 5,
+                        complexity: Math.random() * 0.8 + 0.2,
+                        symmetryType: flower.symmetry
+                    };
+                    threads.push(thread);
+                });
+                
+                // Add garden-level threads
+                threads.push({
+                    id: 'garden-initialization',
+                    content: 'Initialized live voxel garden with physics simulation and orbital controls',
+                    timestamp: Date.now() - 300000, // 5 minutes ago
+                    interactions: 1,
+                    complexity: 0.9,
+                    symmetryType: 'organic'
+                });
+                
+                return {
+                    threads: threads,
+                    branches: Math.max(1, Math.floor(threads.length / 2)),
+                    depth: Math.min(5, threads.length),
+                    narrative: 'Live voxel garden fractional analysis session'
+                };
+            }
+            
+            simulateFractionalAnalysis(sessionData) {
+                // Mock fractional FFT analysis results
+                const analysis = {
+                    temporalPatterns: {},
+                    semanticStructures: {},
+                    emergentProperties: {},
+                    hyperstiousSignatures: {},
+                    crossDomainCorrelations: {},
+                    features: {
+                        dominantFrequencies: {},
+                        energyDistribution: {}
+                    },
+                    hyperstitiousPatterns: {
+                        emergentFrequencies: [],
+                        synchronicities: [],
+                        recursiveLoops: [],
+                        temporalAnomalies: [],
+                        causalInversions: []
+                    }
+                };
+                
+                // Generate mock patterns based on garden complexity
+                const complexity = sessionData.threads.reduce((sum, t) => sum + (t.complexity || 0), 0) / sessionData.threads.length;
+                const diversityScore = new Set(sessionData.threads.map(t => t.symmetryType)).size / 5; // Max 5 symmetry types
+                
+                // Generate hyperstitious signatures
+                sessionData.threads.forEach((thread, index) => {
+                    if (Math.random() > 0.7) { // 30% chance of emergent frequency
+                        analysis.hyperstitiousPatterns.emergentFrequencies.push({
+                            signal: thread.id,
+                            frequency: Math.floor(Math.random() * 32),
+                            magnitude: Math.random() * 2 + 1,
+                            phase: Math.random() * Math.PI * 2,
+                            anomalyScore: Math.random() * 0.5 + 0.5
+                        });
+                    }
+                    
+                    if (complexity > 0.6 && Math.random() > 0.8) { // Temporal anomalies in complex gardens
+                        analysis.hyperstitiousPatterns.temporalAnomalies.push({
+                            signal: thread.id,
+                            type: 'temporal_phase_inversion',
+                            strength: Math.random() * 0.4 + 0.6,
+                            description: 'Future flower growth patterns influencing past voxel placement'
+                        });
+                    }
+                });
+                
+                // Add recursive loops for repetitive patterns
+                if (diversityScore < 0.4) { // Low diversity suggests recursion
+                    analysis.hyperstitiousPatterns.recursiveLoops.push({
+                        domain: 'emergentProperties',
+                        signal: 'complexity',
+                        recursiveness: 0.8,
+                        selfSimilarityScale: 3
+                    });
+                }
+                
+                const report = {
+                    summary: {
+                        totalSignals: sessionData.threads.length,
+                        dominantOrder: complexity > 0.7 ? 'hyperstitious' : diversityScore > 0.6 ? 'emergent' : 'semantic',
+                        complexity: complexity,
+                        coherence: 1 - diversityScore // Inverse of diversity
+                    },
+                    patterns: {
+                        temporal: { peakFrequency: Math.floor(Math.random() * 16) },
+                        semantic: { meanMagnitude: complexity },
+                        emergent: { spectralCentroid: diversityScore * 16 },
+                        hyperstitious: { bandwidth: Math.floor(Math.random() * 8) + 2 }
+                    },
+                    recommendations: []
+                };
+                
+                // Generate contextual recommendations
+                if (complexity < 0.3) {
+                    report.recommendations.push("Garden shows low complexity - consider adding more diverse flower types");
+                }
+                if (diversityScore > 0.8) {
+                    report.recommendations.push("High pattern diversity detected - excellent for emergent behavior study");
+                }
+                if (analysis.hyperstitiousPatterns.emergentFrequencies.length > 0) {
+                    report.recommendations.push("Hyperstitious frequencies detected - unusual patterns emerging from the void");
+                }
+                if (analysis.hyperstitiousPatterns.temporalAnomalies.length > 0) {
+                    report.recommendations.push("Temporal anomalies suggest non-causal relationships in flower growth");
+                }
+                
+                analysis.report = report;
+                return analysis;
+            }
+            
+            displayAnalysisResults(analysis) {
+                const report = analysis.report;
+                
+                let message = `🔬 Fractional FFT Analysis Results\\n\\n`;
+                message += `📊 Summary:\\n`;
+                message += `- Total Signals: ${report.summary.totalSignals}\\n`;
+                message += `- Dominant Order: ${report.summary.dominantOrder}\\n`;
+                message += `- Complexity: ${(report.summary.complexity * 100).toFixed(1)}%\\n`;
+                message += `- Coherence: ${(report.summary.coherence * 100).toFixed(1)}%\\n\\n`;
+                
+                if (analysis.hyperstitiousPatterns.emergentFrequencies.length > 0) {
+                    message += `🌀 Hyperstitious Patterns:\\n`;
+                    message += `- Emergent Frequencies: ${analysis.hyperstitiousPatterns.emergentFrequencies.length}\\n`;
+                    message += `- Temporal Anomalies: ${analysis.hyperstitiousPatterns.temporalAnomalies.length}\\n`;
+                    message += `- Recursive Loops: ${analysis.hyperstitiousPatterns.recursiveLoops.length}\\n\\n`;
+                }
+                
+                if (report.recommendations.length > 0) {
+                    message += `💡 Recommendations:\\n`;
+                    report.recommendations.forEach(rec => {
+                        message += `- ${rec}\\n`;
+                    });
+                }
+                
+                alert(message);
+                
+                // Store results for future use
+                this.fractionalResults = analysis;
+                
+                console.log('📈 Full Analysis Results:', analysis);
+            }
+            
+            applyAnalysisVisualization(analysis) {
+                // Visual effects based on analysis results
+                const report = analysis.report;
+                
+                // Color modulation based on dominant order
+                let colorShift = 0;
+                switch (report.summary.dominantOrder) {
+                    case 'hyperstitious':
+                        colorShift = 0.8; // Purple/magenta shift
+                        break;
+                    case 'emergent':
+                        colorShift = 0.3; // Green shift
+                        break;
+                    case 'semantic':
+                        colorShift = 0.6; // Blue shift
+                        break;
+                    default:
+                        colorShift = 0.15; // Orange shift
+                }
+                
+                // Apply color effects to existing voxels
+                this.voxels.forEach((voxel, index) => {
+                    if (Math.random() < report.summary.complexity) { // Complexity-based probability
+                        const hsl = new THREE.Color();
+                        hsl.setHSL(colorShift, 0.8, 0.6);
+                        voxel.material.color.lerp(hsl, 0.3);
+                        voxel.material.emissive.copy(hsl).multiplyScalar(0.1);
+                    }
+                });
+                
+                // Create hyperstitious frequency visualization
+                analysis.hyperstitiousPatterns.emergentFrequencies.forEach(freq => {
+                    if (Math.random() > 0.7) { // Only visualize some frequencies
+                        const x = (Math.random() - 0.5) * 8;
+                        const y = 3 + Math.random() * 2;
+                        const z = (Math.random() - 0.5) * 8;
+                        
+                        // Create glowing marker for emergent frequency
+                        const geometry = new THREE.SphereGeometry(0.1, 8, 6);
+                        const material = new THREE.MeshBasicMaterial({
+                            color: 0xff00ff,
+                            transparent: true,
+                            opacity: 0.7
+                        });
+                        const marker = new THREE.Mesh(geometry, material);
+                        marker.position.set(x, y, z);
+                        
+                        this.scene.add(marker);
+                        
+                        // Animate the marker
+                        const animate = () => {
+                            marker.rotation.x += 0.02;
+                            marker.rotation.y += 0.03;
+                            marker.scale.setScalar(1 + Math.sin(Date.now() * 0.01) * 0.2);
+                        };
+                        
+                        // Remove after 5 seconds
+                        setTimeout(() => {
+                            this.scene.remove(marker);
+                        }, 5000);
+                        
+                        const animationId = setInterval(animate, 16);
+                        setTimeout(() => clearInterval(animationId), 5000);
+                    }
+                });
+                
+                console.log('✨ Applied fractional analysis visualization effects');
             }
             
             startRenderLoop() {
