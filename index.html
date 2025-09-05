@@ -212,6 +212,7 @@
             <div class="control-group">
                 <button id="exportData">💾 Export Data</button>
                 <button id="togglePhysics">⚡ Toggle Physics</button>
+                <button id="whirrButton">🌀 Listen for Whirring</button>
             </div>
         </div>
 
@@ -247,6 +248,13 @@
                 this.clock = new THREE.Clock();
                 this.frameCount = 0;
                 this.lastFPSUpdate = 0;
+                
+                // Sonic resonance system
+                this.audioContext = null;
+                this.analyzer = null;
+                this.microphone = null;
+                this.isListening = false;
+                this.acousticVibrations = [];
                 
                 this.init();
                 this.setupEventListeners();
@@ -658,6 +666,7 @@
                 document.getElementById('clearGarden').addEventListener('click', () => this.clearGarden());
                 document.getElementById('exportData').addEventListener('click', () => this.exportData());
                 document.getElementById('togglePhysics').addEventListener('click', () => this.togglePhysics());
+                document.getElementById('whirrButton').addEventListener('click', () => this.toggleWhirrListening());
 
                 // Range input updates
                 document.getElementById('complexity').addEventListener('input', (e) => {
@@ -688,6 +697,151 @@
                 });
             }
 
+            async toggleWhirrListening() {
+                const button = document.getElementById('whirrButton');
+                
+                if (!this.isListening) {
+                    try {
+                        // Initialize audio context
+                        if (!this.audioContext) {
+                            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                            this.analyzer = this.audioContext.createAnalyser();
+                            this.analyzer.fftSize = 2048;
+                            this.analyzer.smoothingTimeConstant = 0.8;
+                        }
+                        
+                        // Resume audio context if suspended
+                        if (this.audioContext.state === 'suspended') {
+                            await this.audioContext.resume();
+                        }
+                        
+                        // Get microphone access
+                        const stream = await navigator.mediaDevices.getUserMedia({ 
+                            audio: {
+                                echoCancellation: false,
+                                noiseSuppression: false,
+                                autoGainControl: false
+                            } 
+                        });
+                        
+                        this.microphone = this.audioContext.createMediaStreamSource(stream);
+                        this.microphone.connect(this.analyzer);
+                        
+                        this.isListening = true;
+                        button.textContent = '🔇 Stop Whirring';
+                        
+                        console.log('🎤 Started listening for whirring sounds...');
+                        this.startWhirrAnalysis();
+                        
+                    } catch (error) {
+                        console.error('Failed to start whirr listening:', error);
+                        alert('Could not access microphone. Please check permissions.');
+                    }
+                } else {
+                    this.stopWhirrListening();
+                    button.textContent = '🌀 Listen for Whirring';
+                }
+            }
+
+            stopWhirrListening() {
+                if (this.microphone) {
+                    this.microphone.disconnect();
+                    this.microphone = null;
+                }
+                this.isListening = false;
+                console.log('🔇 Stopped listening for whirring');
+            }
+
+            startWhirrAnalysis() {
+                const frequencyData = new Uint8Array(this.analyzer.frequencyBinCount);
+                const timeData = new Uint8Array(this.analyzer.fftSize);
+                
+                const analyze = () => {
+                    if (!this.isListening) return;
+                    
+                    this.analyzer.getByteFrequencyData(frequencyData);
+                    this.analyzer.getByteTimeDomainData(timeData);
+                    
+                    // Calculate RMS amplitude
+                    let sum = 0;
+                    for (let i = 0; i < timeData.length; i++) {
+                        const sample = (timeData[i] - 128) / 128;
+                        sum += sample * sample;
+                    }
+                    const amplitude = Math.sqrt(sum / timeData.length);
+                    
+                    // Find dominant frequency
+                    let maxAmplitude = 0;
+                    let dominantFrequency = 0;
+                    const nyquist = this.audioContext.sampleRate / 2;
+                    const binWidth = nyquist / frequencyData.length;
+                    
+                    for (let i = 1; i < frequencyData.length; i++) {
+                        if (frequencyData[i] > maxAmplitude) {
+                            maxAmplitude = frequencyData[i];
+                            dominantFrequency = i * binWidth;
+                        }
+                    }
+                    
+                    // Detect whirring pattern
+                    if (amplitude > 0.01 && maxAmplitude > 50) {
+                        this.processWhirring(dominantFrequency, amplitude);
+                    }
+                    
+                    requestAnimationFrame(analyze);
+                };
+                
+                analyze();
+            }
+
+            processWhirring(frequency, amplitude) {
+                // Create sonic-driven flower
+                const whirrType = this.classifyWhirring(frequency, amplitude);
+                
+                console.log(`🌀 Whirring detected: ${frequency.toFixed(1)}Hz, ${amplitude.toFixed(3)} amplitude -> ${whirrType}`);
+                
+                // Generate whirr-responsive flower
+                const flower = this.createWhirrFlower(whirrType, frequency, amplitude);
+                this.flowers.push(flower);
+                
+                // Apply acoustic vibrations
+                this.acousticVibrations = [{
+                    frequency: frequency,
+                    amplitude: amplitude,
+                    phase: Date.now() * 0.001
+                }];
+                
+                this.updateStats();
+            }
+
+            classifyWhirring(frequency, amplitude) {
+                if (frequency < 100) return 'wind';
+                if (frequency < 300) return 'organic';  
+                if (frequency < 800) return 'mechanical';
+                if (frequency < 2000) return 'spinning';
+                return 'digital';
+            }
+
+            createWhirrFlower(type, frequency, amplitude) {
+                const flowerTypes = {
+                    'wind': 'rosaceae',
+                    'organic': 'organic',
+                    'mechanical': 'quadruple', 
+                    'spinning': 'pentagonal',
+                    'digital': 'fractal'
+                };
+                
+                const flower = this.createFlowerStructure(flowerTypes[type] || 'organic', amplitude + 0.3);
+                
+                // Apply frequency-based coloring
+                const hue = (frequency / 2000) * 360; // Map frequency to hue
+                flower.sonicHue = hue;
+                flower.sonicFrequency = frequency;
+                flower.sonicAmplitude = amplitude;
+                
+                return flower;
+            }
+
             animate() {
                 this.animationId = requestAnimationFrame(() => this.animate());
 
@@ -708,7 +862,7 @@
                 const physicsStrength = parseFloat(document.getElementById('physicsStrength').value);
                 this.world.gravity.y = -9.82 * physicsStrength;
 
-                // Animate flowers
+                // Animate flowers with acoustic vibrations
                 const time = this.clock.elapsedTime;
                 this.voxels.forEach((voxel, index) => {
                     const t = time + index * 0.1;
@@ -720,6 +874,19 @@
                     
                     // Rotation based on semantic weight
                     voxel.mesh.rotation.y += voxel.semanticWeight * 0.001;
+                    
+                    // Apply acoustic vibrations
+                    if (this.acousticVibrations.length > 0) {
+                        const vibration = this.acousticVibrations[0];
+                        const vibrationOffset = Math.sin(t * vibration.frequency * 0.01) * vibration.amplitude * 0.1;
+                        voxel.mesh.position.y += vibrationOffset;
+                        
+                        // Update color based on frequency
+                        if (voxel.flower && voxel.flower.sonicHue !== undefined) {
+                            const hue = (voxel.flower.sonicHue + t * 10) % 360;
+                            voxel.mesh.material.color.setHSL(hue / 360, 0.8, 0.6);
+                        }
+                    }
                 });
 
                 // Update FPS counter

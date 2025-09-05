@@ -256,6 +256,9 @@ export class VoxelGarden {
         // Update growing flowers
         this.flowers.forEach(flower => flower.update());
         
+        // Update voxel vibrations from sonic input
+        this.updateSonicVibrations();
+        
         // Animate lighting
         const time = Date.now() * 0.001;
         this.scene.children.forEach(child => {
@@ -263,6 +266,72 @@ export class VoxelGarden {
                 child.intensity = 0.5 + Math.sin(time + child.position.x) * 0.2;
             }
         });
+    }
+
+    updateSonicVibrations() {
+        const time = Date.now() * 0.001;
+        
+        // Apply acoustic vibrations to voxels
+        for (const [type, data] of this.instancedMeshes.entries()) {
+            if (type === 'petal' && this.acousticVibrations) {
+                const matrix = new THREE.Matrix4();
+                
+                for (let i = 0; i < data.count; i++) {
+                    data.mesh.getMatrixAt(i, matrix);
+                    
+                    // Extract position from matrix
+                    const position = new THREE.Vector3();
+                    position.setFromMatrixPosition(matrix);
+                    
+                    // Apply vibration based on acoustic input
+                    const vibration = this.calculateVoxelVibration(position, time);
+                    
+                    // Update position with vibration offset
+                    matrix.setPosition(
+                        position.x + vibration.x,
+                        position.y + vibration.y,
+                        position.z + vibration.z
+                    );
+                    
+                    data.mesh.setMatrixAt(i, matrix);
+                }
+                
+                data.mesh.instanceMatrix.needsUpdate = true;
+            }
+        }
+    }
+
+    calculateVoxelVibration(position, time) {
+        if (!this.acousticVibrations || this.acousticVibrations.length === 0) {
+            return { x: 0, y: 0, z: 0 };
+        }
+
+        let totalVibration = { x: 0, y: 0, z: 0 };
+        
+        for (const vibration of this.acousticVibrations) {
+            // Calculate distance-based attenuation
+            const distance = Math.sqrt(
+                position.x * position.x + 
+                position.y * position.y + 
+                position.z * position.z
+            );
+            
+            const attenuation = 1 / (1 + distance * 0.1);
+            
+            // Calculate vibration based on frequency and amplitude
+            const freq = vibration.frequency * 0.001;
+            const amp = vibration.amplitude * attenuation * 0.5;
+            
+            totalVibration.x += Math.sin(time * freq + position.x * 0.1) * amp;
+            totalVibration.y += Math.cos(time * freq * 1.3 + position.y * 0.1) * amp;
+            totalVibration.z += Math.sin(time * freq * 0.7 + position.z * 0.1) * amp;
+        }
+        
+        return totalVibration;
+    }
+
+    setAcousticVibrations(vibrations) {
+        this.acousticVibrations = vibrations;
     }
 
     render() {

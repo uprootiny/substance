@@ -4,6 +4,7 @@ import { FlowerGrowthEngine } from './growth/FlowerGrowthEngine.js';
 import { PhysicsEngine } from './physics/PhysicsEngine.js';
 import { EventSystem } from './core/EventSystem.js';
 import { DataFlow } from './core/DataFlow.js';
+import { SonicResonance } from './audio/SonicResonance.js';
 
 class SubstanceVoxelFlowers {
     constructor() {
@@ -26,6 +27,7 @@ class SubstanceVoxelFlowers {
         // Initialize reactive architecture
         this.eventSystem = new EventSystem();
         this.dataFlow = new DataFlow(this.eventSystem);
+        this.sonicResonance = new SonicResonance(this.eventSystem);
         
         // Initialize components with event system integration
         this.voxelGarden = null;
@@ -75,6 +77,10 @@ class SubstanceVoxelFlowers {
         this.eventSystem.subscribe('flower.spec.ready', spec => flowerStream.process(spec));
         this.eventSystem.subscribe('voxel.created', this.updateStatsReactive.bind(this));
         this.eventSystem.subscribe('physics.step', this.syncPhysicsReactive.bind(this));
+        
+        // Register sonic event handlers
+        this.eventSystem.subscribe('whirr.detected', this.handleWhirringDetected.bind(this));
+        this.eventSystem.subscribe('sonic.listening.started', this.handleSonicListening.bind(this));
     }
 
     async init() {
@@ -104,7 +110,12 @@ class SubstanceVoxelFlowers {
     }
 
     setupEventListeners() {
-        this.ui.generateBtn.addEventListener('click', () => this.generateFlower());
+        this.ui.generateBtn.addEventListener('click', () => {
+            this.generateFlower();
+            // Emit user interaction event for audio context
+            this.eventSystem.emit('user.interaction', { type: 'button_click' });
+        });
+        
         this.ui.resetBtn.addEventListener('click', () => this.resetGarden());
         this.ui.pauseBtn.addEventListener('click', () => this.togglePhysics());
         
@@ -114,8 +125,97 @@ class SubstanceVoxelFlowers {
             }
         });
         
+        // Add sonic listening controls
+        this.addSonicControls();
+        
         // Handle window resize
         window.addEventListener('resize', () => this.voxelGarden.handleResize());
+    }
+
+    addSonicControls() {
+        // Add whirr listening button
+        const whirrBtn = document.createElement('button');
+        whirrBtn.textContent = '🌀 Listen for Whirring';
+        whirrBtn.id = 'whirrBtn';
+        whirrBtn.addEventListener('click', () => {
+            this.toggleSonicListening();
+            this.eventSystem.emit('user.interaction', { type: 'whirr_button' });
+        });
+
+        // Add to controls
+        const controlsParent = this.ui.generateBtn.parentNode;
+        controlsParent.appendChild(whirrBtn);
+
+        this.ui.whirrBtn = whirrBtn;
+    }
+
+    toggleSonicListening() {
+        if (this.sonicResonance.isListening) {
+            this.eventSystem.emit('whirr.deactivate');
+            this.ui.whirrBtn.textContent = '🌀 Listen for Whirring';
+        } else {
+            this.eventSystem.emit('whirr.activate');
+            this.ui.whirrBtn.textContent = '🔇 Stop Listening';
+        }
+    }
+
+    handleWhirringDetected(event) {
+        const { analysis, flowerSpec } = event.payload;
+        
+        console.log(`🌸 Whirring flower generated: ${analysis.type}`);
+        
+        // Create sonic-driven flower
+        this.createSonicFlower(flowerSpec);
+        
+        // Update voxel garden with acoustic vibrations
+        if (this.voxelGarden) {
+            const vibrations = [{
+                frequency: analysis.frequencies[0]?.frequency || 440,
+                amplitude: analysis.amplitude,
+                harmonics: analysis.harmonics
+            }];
+            this.voxelGarden.setAcousticVibrations(vibrations);
+        }
+    }
+
+    handleSonicListening(event) {
+        console.log('🎤 Started listening for acoustic patterns...');
+        
+        // Start calibration after a brief delay
+        setTimeout(() => {
+            this.sonicResonance.calibrateForEnvironment();
+        }, 1000);
+    }
+
+    async createSonicFlower(sonicFlowerSpec) {
+        // Convert sonic flower spec to standard flower spec
+        const standardSpec = {
+            type: sonicFlowerSpec.type,
+            complexity: sonicFlowerSpec.complexity,
+            center: { x: 0, y: 0, z: 0 },
+            
+            // Add sonic-specific properties
+            sonic: sonicFlowerSpec.acoustic,
+            visual: sonicFlowerSpec.visual,
+            physics: sonicFlowerSpec.physics
+        };
+
+        // Generate through existing flower system
+        await this.voxelGarden.growFlower(standardSpec);
+        
+        // Apply sonic visual effects
+        this.applySonicVisualEffects(sonicFlowerSpec);
+        
+        this.updateStats();
+    }
+
+    applySonicVisualEffects(sonicSpec) {
+        // Apply frequency-based coloring and vibration effects
+        const { visual, acoustic } = sonicSpec;
+        
+        // This would modify the most recently created flower
+        // with sonic-specific visual properties
+        console.log(`🎨 Applying sonic effects: hue=${visual.colorHue.toFixed(1)}°, vibration=${acoustic.fundamentalFreq.toFixed(1)}Hz`);
     }
 
     async generateFlower() {
