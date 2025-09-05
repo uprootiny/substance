@@ -31,16 +31,23 @@ jobs:
         cache: 'npm'
         
     - name: 📦 Install dependencies
-      run: npm ci
+      run: |
+        if [ -f package-lock.json ]; then
+          npm ci
+        else
+          npm install
+        fi
       
     - name: 🏗️ Build Vite application
       run: npm run build
       
     - name: 🌸 Copy demo files to dist
       run: |
-        cp demo.html dist/
-        cp README.md dist/
-        echo "🌺 Substance Voxel Flowers deployed at $(date)" > dist/build-info.txt
+        if [ -f demo.html ]; then cp demo.html dist/; fi
+        if [ -f README.md ]; then cp README.md dist/; fi
+        if [ -f live-demo.html ]; then cp live-demo.html dist/; fi
+        echo "🌺 Substance Voxel Flowers with Fractional FFT Analysis deployed at $(date)" > dist/build-info.txt
+        echo "🔬 Latest Enhancement: Hyperstitious pattern detection via fractional Fourier transforms" >> dist/build-info.txt
       
     - name: 📁 Setup Pages
       uses: actions/configure-pages@v4
