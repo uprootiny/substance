@@ -2,6 +2,8 @@ import { VoxelGarden } from './core/VoxelGarden.js';
 import { TmuxDataParser } from './parsers/TmuxDataParser.js';
 import { FlowerGrowthEngine } from './growth/FlowerGrowthEngine.js';
 import { PhysicsEngine } from './physics/PhysicsEngine.js';
+import { EventSystem } from './core/EventSystem.js';
+import { DataFlow } from './core/DataFlow.js';
 
 class SubstanceVoxelFlowers {
     constructor() {
@@ -21,6 +23,11 @@ class SubstanceVoxelFlowers {
             }
         };
         
+        // Initialize reactive architecture
+        this.eventSystem = new EventSystem();
+        this.dataFlow = new DataFlow(this.eventSystem);
+        
+        // Initialize components with event system integration
         this.voxelGarden = null;
         this.tmuxParser = new TmuxDataParser();
         this.flowerEngine = new FlowerGrowthEngine();
@@ -34,18 +41,51 @@ class SubstanceVoxelFlowers {
             flowers: 0
         };
         
+        this.setupReactiveDataFlow();
         this.init();
+    }
+
+    setupReactiveDataFlow() {
+        // Create data streams for different data sources
+        const tmuxStream = this.dataFlow.createStream('tmux-data', {
+            bufferSize: 10,
+            semanticDomains: ['narrative', 'temporal']
+        });
+
+        const flowerStream = this.dataFlow.createStream('flower-generation', {
+            bufferSize: 5,
+            semanticDomains: ['visual', 'growth']
+        });
+
+        // Set up tmux data processing pipeline
+        tmuxStream
+            .map(data => this.dataFlow.applyTransformation('tmux.parse', data))
+            .map(parsed => this.dataFlow.applyTransformation('semantic.extract', parsed))
+            .map(features => this.dataFlow.applyTransformation('flower.spec', features))
+            .subscribe(spec => this.processFlowerSpec(spec));
+
+        // Set up flower generation pipeline
+        flowerStream
+            .map(spec => this.dataFlow.applyTransformation('voxel.position', spec))
+            .map(positions => this.dataFlow.applyTransformation('physics.sync', positions))
+            .subscribe(physicsData => this.createVoxelFlower(physicsData));
+
+        // Register event handlers for reactive updates
+        this.eventSystem.subscribe('tmux.data.received', data => tmuxStream.process(data));
+        this.eventSystem.subscribe('flower.spec.ready', spec => flowerStream.process(spec));
+        this.eventSystem.subscribe('voxel.created', this.updateStatsReactive.bind(this));
+        this.eventSystem.subscribe('physics.step', this.syncPhysicsReactive.bind(this));
     }
 
     async init() {
         try {
             await this.initializeVoxelGarden();
             this.setupEventListeners();
-            this.startRenderLoop();
+            this.startReactiveRenderLoop();
             this.hideLoading();
             
-            // Generate initial sample flower from tmux data
-            this.generateFlowerFromSample();
+            // Generate initial sample flower using reactive pipeline
+            this.generateFlowerFromSampleReactive();
         } catch (error) {
             console.error('Failed to initialize Substance Voxel Flowers:', error);
             this.showError(error.message);
@@ -96,14 +136,44 @@ class SubstanceVoxelFlowers {
         this.updateStats();
     }
 
-    generateFlowerFromSample() {
-        // Use the openrouter conversation as inspiration for initial flower
+    generateFlowerFromSampleReactive() {
+        // Emit tmux data through reactive pipeline
         const sampleData = this.getQuadrupleHelixData();
-        const parsedData = this.tmuxParser.parse(sampleData);
-        const flowerSpec = this.flowerEngine.generateFlowerSpec(parsedData, 'organic');
-        
-        this.voxelGarden.growFlower(flowerSpec);
-        this.updateStats();
+        this.eventSystem.emit('tmux.data.received', sampleData, {
+            semanticWeight: 0.9,
+            urgency: 'normal'
+        });
+    }
+
+    processFlowerSpec(spec) {
+        // Bridge between reactive pipeline and existing flower generation
+        this.eventSystem.emit('flower.spec.ready', spec);
+    }
+
+    async createVoxelFlower(physicsData) {
+        // Create voxel flower with physics integration
+        for (const voxelData of physicsData) {
+            await this.voxelGarden.createVoxel(voxelData);
+            this.eventSystem.emit('voxel.created', voxelData);
+        }
+    }
+
+    updateStatsReactive(event) {
+        // Reactive stats update based on events
+        this.stats.voxels++;
+        this.updateStatsDisplay();
+    }
+
+    syncPhysicsReactive(event) {
+        // Reactive physics synchronization
+        if (!this.isPhysicsPaused) {
+            this.physicsEngine.processPhysicsStep(event.payload);
+        }
+    }
+
+    generateFlowerFromSample() {
+        // Legacy method - kept for compatibility
+        this.generateFlowerFromSampleReactive();
     }
 
     getQuadrupleHelixData() {
@@ -210,26 +280,71 @@ class SubstanceVoxelFlowers {
         this.ui.pauseBtn.textContent = this.isPhysicsPaused ? '▶ Resume Physics' : '⏸ Pause Physics';
     }
 
-    startRenderLoop() {
+    startReactiveRenderLoop() {
+        let frameId = 0;
+        
         const animate = () => {
+            frameId++;
             requestAnimationFrame(animate);
             
-            // Update physics
+            // Emit physics step event for reactive updates
             if (!this.isPhysicsPaused) {
+                this.eventSystem.emit('physics.step', {
+                    frameId,
+                    timestamp: Date.now(),
+                    deltaTime: this.calculateDelta()
+                });
                 this.physicsEngine.update();
             }
             
             // Update voxel garden
             this.voxelGarden.update();
             
-            // Calculate and display FPS
-            this.calculateFPS();
+            // Emit render frame event
+            this.eventSystem.emit('render.frame', {
+                frameId,
+                fps: this.calculateFPS()
+            });
             
             // Render scene
             this.voxelGarden.render();
+            
+            // Emit performance metrics periodically
+            if (frameId % 60 === 0) {
+                this.emitPerformanceMetrics();
+            }
         };
         
         animate();
+    }
+
+    calculateDelta() {
+        const now = performance.now();
+        const delta = this.lastFrameTime ? now - this.lastFrameTime : 16;
+        this.lastFrameTime = now;
+        return delta / 1000; // Convert to seconds
+    }
+
+    emitPerformanceMetrics() {
+        const metrics = {
+            eventSystem: this.eventSystem.getMetrics(),
+            dataFlow: this.dataFlow.getMetrics(),
+            garden: {
+                voxels: this.stats.voxels,
+                flowers: this.stats.flowers,
+                fps: this.stats.fps
+            }
+        };
+
+        this.eventSystem.emit('performance.metrics', metrics, {
+            urgency: 'low',
+            semanticWeight: 0.3
+        });
+    }
+
+    startRenderLoop() {
+        // Legacy method - redirect to reactive version
+        this.startReactiveRenderLoop();
     }
 
     calculateFPS() {
@@ -251,9 +366,18 @@ class SubstanceVoxelFlowers {
         this.stats.physicsBodies = this.physicsEngine.getBodyCount();
         this.stats.flowers = this.voxelGarden.getFlowerCount();
         
+        this.updateStatsDisplay();
+    }
+
+    updateStatsDisplay() {
         this.ui.stats.voxelCount.textContent = this.stats.voxels;
         this.ui.stats.physicsCount.textContent = this.stats.physicsBodies;
         this.ui.stats.flowerCount.textContent = this.stats.flowers;
+        
+        // Emit stats update event
+        this.eventSystem.emit('stats.updated', this.stats, {
+            urgency: 'low'
+        });
     }
 
     hideLoading() {

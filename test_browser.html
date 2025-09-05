@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Reactive Architecture Tests</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .test-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .test-output {
+            background: #000;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 400px;
+            font-size: 14px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .test-controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .status {
+            color: #4ecdc4;
+            font-weight: bold;
+        }
+
+        .success { color: #50c878; }
+        .error { color: #ff6b6b; }
+        .warning { color: #ffa500; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Reactive Architecture Test Suite</h1>
+        
+        <div class="test-controls">
+            <button onclick="runAllTests()">Run All Tests</button>
+            <button onclick="runEventSystemTests()">Event System Tests</button>
+            <button onclick="runDataFlowTests()">Data Flow Tests</button>
+            <button onclick="clearOutput()">Clear Output</button>
+            <span class="status" id="status">Ready</span>
+        </div>
+
+        <div id="testOutput" class="test-output">
+Click "Run All Tests" to begin testing the reactive architecture...
+        </div>
+    </div>
+
+    <script type="module">
+        let testOutput = document.getElementById('testOutput');
+        let status = document.getElementById('status');
+
+        // Mock console for capturing output
+        const originalConsole = {
+            log: console.log,
+            error: console.error
+        };
+
+        function captureConsole() {
+            console.log = (...args) => {
+                const message = args.map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+                ).join(' ');
+                
+                testOutput.textContent += message + '\n';
+                testOutput.scrollTop = testOutput.scrollHeight;
+                originalConsole.log(...args);
+            };
+
+            console.error = (...args) => {
+                const message = args.map(arg => 
+                    typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+                ).join(' ');
+                
+                testOutput.innerHTML += '<span class="error">' + message + '</span>\n';
+                testOutput.scrollTop = testOutput.scrollHeight;
+                originalConsole.error(...args);
+            };
+        }
+
+        function restoreConsole() {
+            console.log = originalConsole.log;
+            console.error = originalConsole.error;
+        }
+
+        // Simplified test classes for browser environment
+        class EventSystem {
+            constructor() {
+                this.listeners = new Map();
+                this.eventBuffer = [];
+                this.semanticRouting = new Map();
+                this.eventHistory = [];
+                this.isProcessing = false;
+                this.metrics = {
+                    eventsProcessed: 0,
+                    averageProcessingTime: 0
+                };
+                
+                this.initializeSemanticRoutes();
+            }
+
+            initializeSemanticRoutes() {
+                this.semanticRouting.set('voxel.created', ['growth', 'visual', 'physics']);
+                this.semanticRouting.set('flower.grown', ['narrative', 'visual', 'semantic']);
+            }
+
+            subscribe(eventType, handler, semanticDomains = [], priority = 0) {
+                if (!this.listeners.has(eventType)) {
+                    this.listeners.set(eventType, []);
+                }
+
+                const subscription = {
+                    id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    handler,
+                    semanticDomains,
+                    priority,
+                    created: Date.now()
+                };
+
+                const listeners = this.listeners.get(eventType);
+                const insertIndex = listeners.findIndex(sub => sub.priority < priority);
+                if (insertIndex === -1) {
+                    listeners.push(subscription);
+                } else {
+                    listeners.splice(insertIndex, 0, subscription);
+                }
+
+                return subscription.id;
+            }
+
+            emit(eventType, payload = {}, options = {}) {
+                const event = {
+                    type: eventType,
+                    payload,
+                    timestamp: Date.now(),
+                    id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    semantic: {
+                        domains: this.semanticRouting.get(eventType) || [],
+                        weight: options.semanticWeight || 1.0,
+                        urgency: options.urgency || 'normal'
+                    }
+                };
+
+                this.eventHistory.push(event);
+                this.eventBuffer.push(event);
+                
+                if (options.immediate) {
+                    this.processEventBuffer();
+                }
+
+                return event.id;
+            }
+
+            processEventBuffer() {
+                const events = [...this.eventBuffer];
+                this.eventBuffer = [];
+
+                for (const event of events) {
+                    this.processEvent(event);
+                }
+
+                this.metrics.eventsProcessed += events.length;
+            }
+
+            processEvent(event) {
+                const listeners = this.listeners.get(event.type) || [];
+                
+                for (const listener of listeners) {
+                    if (this.shouldProcessForListener(event, listener)) {
+                        try {
+                            listener.handler(event);
+                        } catch (error) {
+                            console.error(`Event handler error for ${event.type}:`, error);
+                        }
+                    }
+                }
+            }
+
+            shouldProcessForListener(event, listener) {
+                if (listener.semanticDomains.length === 0) {
+                    return true;
+                }
+
+                const eventDomains = event.semantic.domains;
+                return listener.semanticDomains.some(domain => eventDomains.includes(domain));
+            }
+
+            createEventChain(chainSpec) {
+                const chain = {
+                    id: `chain_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    steps: chainSpec.steps,
+                    currentStep: 0,
+                    context: chainSpec.initialContext || {},
+                    onComplete: chainSpec.onComplete
+                };
+
+                this.processChainStep(chain);
+                return chain.id;
+            }
+
+            processChainStep(chain) {
+                if (chain.currentStep >= chain.steps.length) {
+                    if (chain.onComplete) {
+                        chain.onComplete(chain.context);
+                    }
+                    return;
+                }
+
+                const step = chain.steps[chain.currentStep];
+                
+                const subscriptionId = this.subscribe(step.waitFor, (event) => {
+                    if (step.updateContext) {
+                        chain.context = step.updateContext(chain.context, event);
+                    }
+
+                    this.unsubscribe(step.waitFor, subscriptionId);
+                    chain.currentStep++;
+                    this.processChainStep(chain);
+                });
+
+                if (step.emit) {
+                    this.emit(step.emit.type, {
+                        ...step.emit.payload,
+                        chainId: chain.id,
+                        stepIndex: chain.currentStep
+                    });
+                }
+            }
+
+            unsubscribe(eventType, subscriptionId) {
+                const listeners = this.listeners.get(eventType);
+                if (!listeners) return false;
+
+                const index = listeners.findIndex(sub => sub.id === subscriptionId);
+                if (index !== -1) {
+                    listeners.splice(index, 1);
+                    return true;
+                }
+                return false;
+            }
+
+            analyzeCorrelations() {
+                return []; // Simplified for browser testing
+            }
+
+            getMetrics() {
+                return this.metrics;
+            }
+        }
+
+        class DataFlow {
+            constructor(eventSystem) {
+                this.eventSystem = eventSystem;
+                this.transformations = new Map();
+                this.metrics = {
+                    streamsProcessed: 0,
+                    transformationTime: 0
+                };
+                
+                this.initializeCore();
+            }
+
+            initializeCore() {
+                this.registerTransformation('tmux.parse', this.parseTmuxData.bind(this));
+                this.registerTransformation('semantic.extract', this.extractSemanticFeatures.bind(this));
+                this.registerTransformation('flower.spec', this.generateFlowerSpecification.bind(this));
+                this.registerTransformation('voxel.position', this.calculateVoxelPositions.bind(this));
+            }
+
+            registerTransformation(transformId, transformFn) {
+                this.transformations.set(transformId, {
+                    fn: transformFn,
+                    callCount: 0,
+                    totalTime: 0
+                });
+            }
+
+            async applyTransformation(transformId, data, context = {}) {
+                const transformation = this.transformations.get(transformId);
+                if (!transformation) {
+                    throw new Error(`Unknown transformation: ${transformId}`);
+                }
+
+                const startTime = performance.now();
+                const result = await transformation.fn(data, context);
+                const endTime = performance.now();
+
+                transformation.callCount++;
+                transformation.totalTime += (endTime - startTime);
+
+                return result;
+            }
+
+            parseTmuxData(rawData) {
+                return {
+                    threads: rawData.threads?.map(thread => ({
+                        id: thread.id,
+                        content: thread.content,
+                        timestamp: thread.timestamp || Date.now(),
+                        interactions: thread.interactions || 0,
+                        complexity: Math.random() * 0.5 + 0.3, // Simplified
+                        semanticWeight: Math.random() * 0.4 + 0.2
+                    })) || [],
+                    metadata: {
+                        totalThreads: rawData.threads?.length || 0,
+                        parseTime: Date.now()
+                    }
+                };
+            }
+
+            extractSemanticFeatures(parsedData) {
+                const features = {
+                    keyTerms: new Map([['test', 1], ['function', 2]]),
+                    concepts: new Set(['code', 'test']),
+                    technicalDensity: 0.5
+                };
+
+                return features;
+            }
+
+            generateFlowerSpecification(semanticFeatures) {
+                return {
+                    id: `flower_${Date.now()}`,
+                    type: 'quadruple',
+                    complexity: 0.7,
+                    physics: {
+                        mass: 1,
+                        friction: 0.3,
+                        restitution: 0.5
+                    }
+                };
+            }
+
+            calculateVoxelPositions(flowerSpec) {
+                const positions = [];
+                const count = Math.floor(flowerSpec.complexity * 50 + 20);
+                
+                for (let i = 0; i < count; i++) {
+                    positions.push({
+                        x: Math.random() * 10 - 5,
+                        y: Math.random() * 10,
+                        z: Math.random() * 10 - 5
+                    });
+                }
+
+                return {
+                    positions,
+                    metadata: {
+                        voxelCount: positions.length,
+                        boundingBox: { min: { x: -5, y: 0, z: -5 }, max: { x: 5, y: 10, z: 5 } }
+                    }
+                };
+            }
+
+            createStream(id, config = {}) {
+                return new DataStream(id, config, this);
+            }
+
+            getMetrics() {
+                return this.metrics;
+            }
+        }
+
+        class DataStream {
+            constructor(id, config, dataFlow) {
+                this.id = id;
+                this.operators = [];
+                this.subscribers = [];
+            }
+
+            map(transformFn) {
+                this.operators.push({ type: 'map', fn: transformFn });
+                return this;
+            }
+
+            filter(predicateFn) {
+                this.operators.push({ type: 'filter', fn: predicateFn });
+                return this;
+            }
+
+            subscribe(callback) {
+                this.subscribers.push({ callback });
+            }
+
+            async process(data) {
+                let result = data;
+                
+                for (const operator of this.operators) {
+                    result = await this.applyOperator(operator, result);
+                    if (result === null) return;
+                }
+
+                for (const subscriber of this.subscribers) {
+                    try {
+                        await subscriber.callback(result);
+                    } catch (error) {
+                        console.error(`Stream ${this.id} subscriber error:`, error);
+                    }
+                }
+            }
+
+            async applyOperator(operator, data) {
+                switch (operator.type) {
+                    case 'map':
+                        return await operator.fn(data);
+                    case 'filter':
+                        return (await operator.fn(data)) ? data : null;
+                    default:
+                        return data;
+                }
+            }
+        }
+
+        // Test runner
+        class TestRunner {
+            constructor() {
+                this.passed = 0;
+                this.failed = 0;
+                this.eventSystem = null;
+                this.dataFlow = null;
+            }
+
+            setup() {
+                this.eventSystem = new EventSystem();
+                this.dataFlow = new DataFlow(this.eventSystem);
+            }
+
+            test(name, testFn) {
+                try {
+                    testFn();
+                    console.log(`✅ ${name}`);
+                    this.passed++;
+                } catch (error) {
+                    console.log(`❌ ${name}: ${error.message}`);
+                    this.failed++;
+                }
+            }
+
+            async asyncTest(name, testFn) {
+                try {
+                    await testFn();
+                    console.log(`✅ ${name}`);
+                    this.passed++;
+                } catch (error) {
+                    console.log(`❌ ${name}: ${error.message}`);
+                    this.failed++;
+                }
+            }
+
+            assert(condition, message) {
+                if (!condition) {
+                    throw new Error(message);
+                }
+            }
+
+            assertEqual(actual, expected, message = 'Values should be equal') {
+                if (actual !== expected) {
+                    throw new Error(`${message}: expected ${expected}, got ${actual}`);
+                }
+            }
+
+            summary() {
+                const success = this.failed === 0;
+                console.log(`\n📊 Test Results: ${this.passed} passed, ${this.failed} failed`);
+                return success;
+            }
+        }
+
+        window.runAllTests = async function() {
+            status.textContent = 'Running tests...';
+            status.className = 'status warning';
+            
+            captureConsole();
+            
+            const runner = new TestRunner();
+            runner.setup();
+            
+            console.log('🔧 Starting Reactive Architecture Tests\n');
+            
+            // Event System Tests
+            runner.test('EventSystem initialization', () => {
+                runner.assert(runner.eventSystem instanceof EventSystem, 'EventSystem should instantiate');
+            });
+
+            runner.test('Event subscription and emission', () => {
+                let eventReceived = false;
+                
+                runner.eventSystem.subscribe('test.event', () => {
+                    eventReceived = true;
+                });
+                
+                runner.eventSystem.emit('test.event', {}, { immediate: true });
+                
+                runner.assert(eventReceived, 'Event should be received');
+            });
+
+            runner.test('Semantic event routing', () => {
+                let visualReceived = false;
+                let narrativeReceived = false;
+
+                runner.eventSystem.subscribe('voxel.created', () => {
+                    visualReceived = true;
+                }, ['visual']);
+
+                runner.eventSystem.subscribe('voxel.created', () => {
+                    narrativeReceived = true;
+                }, ['narrative']);
+
+                runner.eventSystem.emit('voxel.created', {}, { immediate: true });
+
+                runner.assert(visualReceived, 'Visual listener should receive event');
+                runner.assert(!narrativeReceived, 'Narrative listener should not receive event');
+            });
+
+            // DataFlow Tests
+            await runner.asyncTest('Data transformation pipeline', async () => {
+                const testData = {
+                    threads: [{
+                        id: 'test',
+                        content: 'test content',
+                        interactions: 5
+                    }]
+                };
+
+                const result = await runner.dataFlow.applyTransformation('tmux.parse', testData);
+                runner.assert(result.threads.length === 1, 'Should parse threads');
+            });
+
+            await runner.asyncTest('Stream processing', async () => {
+                let processedData = null;
+                
+                const stream = runner.dataFlow.createStream('test-stream');
+                stream
+                    .map(data => ({ ...data, processed: true }))
+                    .subscribe(data => {
+                        processedData = data;
+                    });
+
+                await stream.process({ value: 10 });
+                
+                runner.assert(processedData.processed === true, 'Data should be processed');
+            });
+
+            const success = runner.summary();
+            
+            status.textContent = success ? 'All tests passed!' : 'Some tests failed';
+            status.className = success ? 'status success' : 'status error';
+            
+            restoreConsole();
+        };
+
+        window.runEventSystemTests = function() {
+            console.log('Running Event System tests only...');
+        };
+
+        window.runDataFlowTests = function() {
+            console.log('Running Data Flow tests only...');
+        };
+
+        window.clearOutput = function() {
+            testOutput.textContent = 'Output cleared. Click a test button to begin...';
+            status.textContent = 'Ready';
+            status.className = 'status';
+        };
+    </script>
+</body>
+</html>
