@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌸 Substance: Live Voxel Flower Garden</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.20.0/cannon.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 100%);
+            overflow: hidden;
+            color: #fff;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            backdrop-filter: blur(10px);
+            min-width: 300px;
+        }
+
+        #ui h1 {
+            color: #ff6b6b;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px #ff6b6b;
+        }
+
+        #ui p {
+            color: #aaa;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .control-group {
+            margin: 15px 0;
+        }
+
+        .control-group label {
+            display: block;
+            color: #ccc;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .control-group select, .control-group button {
+            width: 100%;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #555;
+            border-radius: 5px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+        }
+
+        .control-group button {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-group button:hover {
+            background: rgba(255, 107, 107, 0.2);
+            border-color: #ff6b6b;
+        }
+
+        #stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #333;
+            backdrop-filter: blur(10px);
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            min-width: 200px;
+        }
+
+        #stats .stat-line {
+            color: #4ecdc4;
+            margin: 5px 0;
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            text-align: center;
+            color: #ff6b6b;
+            font-size: 1.2em;
+        }
+
+        .spinner {
+            border: 2px solid #333;
+            border-radius: 50%;
+            border-top: 2px solid #ff6b6b;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Initializing Voxel Garden...</p>
+        </div>
+
+        <div id="canvas-container"></div>
+
+        <div id="ui">
+            <h1>🌸 Substance Voxel Flowers</h1>
+            <p>Live 3D visualization of semantic flowers</p>
+            
+            <div class="control-group">
+                <label for="growthMode">Growth Pattern:</label>
+                <select id="growthMode">
+                    <option value="quadruple">Quadruple Helix</option>
+                    <option value="pentagonal">Pentagonal</option>
+                    <option value="rosaceae">Rosaceae</option>
+                    <option value="fractal">Fractal</option>
+                    <option value="organic">Organic</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <button id="generateBtn">🌱 Generate Flower</button>
+                <button id="resetBtn">🔄 Reset Garden</button>
+                <button id="physicsBtn">⚡ Toggle Physics</button>
+                <button id="analyzeBtn">🔬 Fractional Analysis</button>
+            </div>
+        </div>
+
+        <div id="stats">
+            <div class="stat-line">Voxels: <span id="voxelCount">0</span></div>
+            <div class="stat-line">Physics Bodies: <span id="physicsCount">0</span></div>
+            <div class="stat-line">FPS: <span id="fps">60</span></div>
+            <div class="stat-line">Flowers: <span id="flowerCount">0</span></div>
+        </div>
+    </div>
+
+    <script>
+        // Live working demo with Three.js and Cannon.js
+        class LiveVoxelGarden {
+            constructor() {
+                this.container = document.getElementById('canvas-container');
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                
+                // Physics world
+                this.world = new CANNON.World();
+                this.world.gravity.set(0, -9.82, 0);
+                
+                this.voxels = [];
+                this.flowers = [];
+                this.physicsEnabled = true;
+                
+                // Fractional analysis data
+                this.analysisData = null;
+                this.fractionalResults = null;
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupRenderer();
+                this.setupCamera();
+                this.setupLighting();
+                this.setupControls();
+                this.setupPhysics();
+                this.startRenderLoop();
+                
+                document.getElementById('loading').classList.add('hidden');
+                
+                // Generate initial flower
+                this.generateFlower('quadruple');
+            }
+            
+            setupRenderer() {
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.setClearColor(0x000000, 0.1);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                
+                this.container.appendChild(this.renderer.domElement);
+            }
+            
+            setupCamera() {
+                this.camera.position.set(10, 8, 10);
+                this.camera.lookAt(0, 0, 0);
+                
+                // Simple orbit controls using mouse
+                this.setupMouseControls();
+            }
+            
+            setupMouseControls() {
+                let isMouseDown = false;
+                let mouseX = 0, mouseY = 0;
+                
+                this.container.addEventListener('mousedown', (e) => {
+                    isMouseDown = true;
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                });
+                
+                this.container.addEventListener('mouseup', () => {
+                    isMouseDown = false;
+                });
+                
+                this.container.addEventListener('mousemove', (e) => {
+                    if (!isMouseDown) return;
+                    
+                    const deltaX = e.clientX - mouseX;
+                    const deltaY = e.clientY - mouseY;
+                    
+                    // Rotate camera around target
+                    const spherical = new THREE.Spherical();
+                    const target = new THREE.Vector3(0, 0, 0);
+                    const offset = this.camera.position.clone().sub(target);
+                    
+                    spherical.setFromVector3(offset);
+                    spherical.theta -= deltaX * 0.01;
+                    spherical.phi += deltaY * 0.01;
+                    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+                    
+                    offset.setFromSpherical(spherical);
+                    this.camera.position.copy(target).add(offset);
+                    this.camera.lookAt(target);
+                    
+                    mouseX = e.clientX;
+                    mouseY = e.clientY;
+                });
+                
+                // Zoom with wheel
+                this.container.addEventListener('wheel', (e) => {
+                    const distance = this.camera.position.distanceTo(new THREE.Vector3(0, 0, 0));
+                    const newDistance = Math.max(2, Math.min(50, distance + e.deltaY * 0.01));
+                    
+                    this.camera.position.normalize().multiplyScalar(newDistance);
+                    this.camera.lookAt(0, 0, 0);
+                });
+            }
+            
+            setupLighting() {
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+                this.scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 20, 5);
+                directionalLight.castShadow = true;
+                this.scene.add(directionalLight);
+                
+                const accent1 = new THREE.PointLight(0xff6b6b, 0.5, 20);
+                accent1.position.set(5, 5, 5);
+                this.scene.add(accent1);
+                
+                const accent2 = new THREE.PointLight(0x4ecdc4, 0.5, 20);
+                accent2.position.set(-5, 5, -5);
+                this.scene.add(accent2);
+            }
+            
+            setupControls() {
+                document.getElementById('generateBtn').addEventListener('click', () => {
+                    const mode = document.getElementById('growthMode').value;
+                    this.generateFlower(mode);
+                });
+                
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.resetGarden();
+                });
+                
+                document.getElementById('physicsBtn').addEventListener('click', () => {
+                    this.physicsEnabled = !this.physicsEnabled;
+                    const btn = document.getElementById('physicsBtn');
+                    btn.textContent = this.physicsEnabled ? '⚡ Physics ON' : '⏸ Physics OFF';
+                });
+                
+                document.getElementById('analyzeBtn').addEventListener('click', () => {
+                    this.runFractionalAnalysis();
+                });
+            }
+            
+            setupPhysics() {
+                // Ground plane
+                const groundShape = new CANNON.Plane();
+                const groundBody = new CANNON.Body({ mass: 0 });
+                groundBody.addShape(groundShape);
+                groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+                groundBody.position.set(0, -5, 0);
+                this.world.add(groundBody);
+            }
+            
+            generateFlower(symmetryType) {
+                const colors = {
+                    quadruple: [0xff6b6b, 0x4ecdc4, 0x45b7d1, 0x96ceb4],
+                    pentagonal: [0xe17055, 0xfdcb6e, 0x6c5ce7, 0xa29bfe, 0xfd79a8],
+                    rosaceae: [0xff7675, 0xfd79a8, 0xfdcb6e, 0x55a3ff, 0x00b894],
+                    fractal: [0x2d3436, 0x636e72, 0xb2bec3, 0xddd, 0xfff],
+                    organic: [0x00b894, 0x00cec9, 0x6c5ce7, 0xa29bfe, 0xfd79a8]
+                };
+                
+                const palette = colors[symmetryType] || colors.organic;
+                const flowerColors = palette.map(color => new THREE.Color(color));
+                
+                // Generate flower based on symmetry type
+                switch(symmetryType) {
+                    case 'quadruple':
+                        this.createQuadrupleFlower(flowerColors);
+                        break;
+                    case 'pentagonal':
+                        this.createPentagonalFlower(flowerColors);
+                        break;
+                    case 'rosaceae':
+                        this.createRosaceaeFlower(flowerColors);
+                        break;
+                    case 'fractal':
+                        this.createFractalFlower(flowerColors, 3);
+                        break;
+                    default:
+                        this.createOrganicFlower(flowerColors);
+                        break;
+                }
+                
+                this.flowers.push({ 
+                    type: symmetryType, 
+                    time: Date.now(), 
+                    voxelCount: this.voxels.length 
+                });
+                this.updateStats();
+            }
+            
+            createQuadrupleFlower(colors) {
+                const center = new THREE.Vector3(Math.random() * 6 - 3, 0, Math.random() * 6 - 3);
+                const stemHeight = 3 + Math.random() * 2;
+                
+                // Create stem
+                for (let y = 0; y < stemHeight; y += 0.3) {
+                    this.addVoxel(center.x, y, center.z, 0x2d5a27, 'stem');
+                }
+                
+                // Create 4 branches
+                for (let i = 0; i < 4; i++) {
+                    const angle = (i * Math.PI * 2) / 4;
+                    const branchLength = 2 + Math.random();
+                    
+                    for (let r = 0.3; r <= branchLength; r += 0.3) {
+                        const x = center.x + Math.cos(angle) * r;
+                        const z = center.z + Math.sin(angle) * r;
+                        const y = stemHeight + Math.sin(r) * 0.5;
+                        
+                        const colorIndex = Math.floor(Math.random() * colors.length);
+                        this.addVoxel(x, y, z, colors[colorIndex], 'petal');
+                    }
+                }
+            }
+            
+            createPentagonalFlower(colors) {
+                const center = new THREE.Vector3(Math.random() * 6 - 3, 0, Math.random() * 6 - 3);
+                const stemHeight = 2.5 + Math.random() * 2;
+                
+                // Create stem
+                for (let y = 0; y < stemHeight; y += 0.3) {
+                    this.addVoxel(center.x, y, center.z, 0x2d5a27, 'stem');
+                }
+                
+                // Create 5 petals with golden ratio
+                const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // Golden angle
+                
+                for (let i = 0; i < 25; i++) {
+                    const angle = i * goldenAngle;
+                    const r = Math.sqrt(i) * 0.3;
+                    
+                    if (r < 2.5) {
+                        const x = center.x + Math.cos(angle) * r;
+                        const z = center.z + Math.sin(angle) * r;
+                        const y = stemHeight + Math.sin(r * 2) * 0.4;
+                        
+                        const colorIndex = Math.floor((i / 5) % colors.length);
+                        this.addVoxel(x, y, z, colors[colorIndex], 'petal');
+                    }
+                }
+            }
+            
+            createRosaceaeFlower(colors) {
+                const center = new THREE.Vector3(Math.random() * 6 - 3, 0, Math.random() * 6 - 3);
+                const stemHeight = 3 + Math.random() * 2;
+                
+                // Create stem
+                for (let y = 0; y < stemHeight; y += 0.3) {
+                    this.addVoxel(center.x, y, center.z, 0x2d5a27, 'stem');
+                }
+                
+                // Create layered rose pattern
+                const layers = 5;
+                for (let layer = 0; layer < layers; layer++) {
+                    const petalsInLayer = 8 + layer * 2;
+                    const layerRadius = 0.5 + layer * 0.4;
+                    const layerHeight = stemHeight + layer * 0.2;
+                    
+                    for (let i = 0; i < petalsInLayer; i++) {
+                        const angle = (i / petalsInLayer) * Math.PI * 2 + layer * 0.3;
+                        
+                        for (let t = 0.3; t <= layerRadius; t += 0.3) {
+                            const x = center.x + Math.cos(angle) * t;
+                            const z = center.z + Math.sin(angle) * t;
+                            const y = layerHeight + Math.sin(t * 3) * 0.3;
+                            
+                            const colorIndex = Math.floor((layer + t) % colors.length);
+                            this.addVoxel(x, y, z, colors[colorIndex], 'petal');
+                        }
+                    }
+                }
+            }
+            
+            createFractalFlower(colors, depth) {
+                const center = new THREE.Vector3(Math.random() * 6 - 3, 0, Math.random() * 6 - 3);
+                this.createFractalBranch(center, 0, Math.PI / 2, 2, depth, colors);
+            }
+            
+            createFractalBranch(pos, angle, elevation, length, depth, colors) {
+                if (depth <= 0 || length < 0.3) return;
+                
+                const endX = pos.x + Math.cos(angle) * length;
+                const endY = pos.y + Math.sin(elevation) * length;
+                const endZ = pos.z + Math.sin(angle) * length;
+                
+                // Draw branch
+                const steps = Math.floor(length / 0.3);
+                for (let i = 0; i <= steps; i++) {
+                    const t = i / steps;
+                    const x = pos.x + (endX - pos.x) * t;
+                    const y = pos.y + (endY - pos.y) * t;
+                    const z = pos.z + (endZ - pos.z) * t;
+                    
+                    const color = depth > 1 ? 0x2d5a27 : colors[Math.floor(Math.random() * colors.length)];
+                    const type = depth > 1 ? 'stem' : 'petal';
+                    this.addVoxel(x, y, z, color, type);
+                }
+                
+                // Recursive branches
+                if (depth > 1) {
+                    for (let i = 0; i < 3; i++) {
+                        const newAngle = angle + (Math.PI / 3) * (i - 1);
+                        this.createFractalBranch(
+                            new THREE.Vector3(endX, endY, endZ),
+                            newAngle,
+                            elevation + Math.PI / 6,
+                            length * 0.7,
+                            depth - 1,
+                            colors
+                        );
+                    }
+                }
+            }
+            
+            createOrganicFlower(colors) {
+                const center = new THREE.Vector3(Math.random() * 6 - 3, 0, Math.random() * 6 - 3);
+                const stemHeight = 2 + Math.random() * 3;
+                
+                // Organic curved stem
+                for (let y = 0; y < stemHeight; y += 0.3) {
+                    const curve = Math.sin(y * 0.5) * 0.3;
+                    this.addVoxel(center.x + curve, y, center.z, 0x2d5a27, 'stem');
+                }
+                
+                // Random organic petals
+                const petalCount = 15 + Math.floor(Math.random() * 15);
+                for (let i = 0; i < petalCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const r = Math.random() * 2.5 + 0.5;
+                    const height = stemHeight + Math.random() * 2 - 1;
+                    
+                    const x = center.x + Math.cos(angle) * r;
+                    const z = center.z + Math.sin(angle) * r;
+                    
+                    const colorIndex = Math.floor(Math.random() * colors.length);
+                    this.addVoxel(x, height, z, colors[colorIndex], 'petal');
+                }
+            }
+            
+            addVoxel(x, y, z, color, type) {
+                const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: typeof color === 'number' ? color : color.getHex() 
+                });
+                const mesh = new THREE.Mesh(geometry, material);
+                
+                mesh.position.set(x, y, z);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                this.scene.add(mesh);
+                
+                // Add physics body
+                if (this.physicsEnabled) {
+                    const shape = new CANNON.Box(new CANNON.Vec3(0.1, 0.1, 0.1));
+                    const body = new CANNON.Body({ 
+                        mass: type === 'stem' ? 0.2 : 0.05 
+                    });
+                    body.addShape(shape);
+                    body.position.set(x, y, z);
+                    this.world.add(body);
+                    
+                    // Link visual and physics
+                    mesh.userData = { body };
+                }
+                
+                this.voxels.push(mesh);
+            }
+            
+            resetGarden() {
+                // Remove all voxels
+                this.voxels.forEach(voxel => {
+                    this.scene.remove(voxel);
+                    if (voxel.userData.body) {
+                        this.world.remove(voxel.userData.body);
+                    }
+                });
+                
+                this.voxels = [];
+                this.flowers = [];
+                this.updateStats();
+            }
+            
+            updateStats() {
+                document.getElementById('voxelCount').textContent = this.voxels.length;
+                document.getElementById('physicsCount').textContent = this.world.bodies.length;
+                document.getElementById('flowerCount').textContent = this.flowers.length;
+            }
+            
+            runFractionalAnalysis() {
+                console.log('🔬 Running Fractional FFT Analysis...');
+                
+                // Generate mock session data based on current garden state
+                const sessionData = this.generateMockSessionData();
+                
+                try {
+                    // Simulate fractional analysis (would use actual FractionalFFT in full implementation)
+                    const analysis = this.simulateFractionalAnalysis(sessionData);
+                    
+                    // Display results
+                    this.displayAnalysisResults(analysis);
+                    
+                    // Apply visual effects based on analysis
+                    this.applyAnalysisVisualization(analysis);
+                    
+                } catch (error) {
+                    console.error('Analysis failed:', error);
+                    alert('🔬 Fractional analysis encountered an error. Check console for details.');
+                }
+            }
+            
+            generateMockSessionData() {
+                const threads = [];
+                
+                // Generate threads based on current flowers
+                this.flowers.forEach((flower, index) => {
+                    const thread = {
+                        id: `flower-thread-${index}`,
+                        content: `Generated ${flower.type} flower with ${flower.voxelCount} voxels using physics simulation`,
+                        timestamp: Date.now() - (index * 30000), // 30 seconds apart
+                        interactions: Math.floor(Math.random() * 20) + 5,
+                        complexity: Math.random() * 0.8 + 0.2,
+                        symmetryType: flower.type
+                    };
+                    threads.push(thread);
+                });
+                
+                // Add garden-level threads
+                threads.push({
+                    id: 'garden-initialization',
+                    content: 'Initialized live voxel garden with physics simulation and orbital controls',
+                    timestamp: Date.now() - 300000, // 5 minutes ago
+                    interactions: 1,
+                    complexity: 0.9,
+                    symmetryType: 'organic'
+                });
+                
+                return {
+                    threads: threads,
+                    branches: Math.max(1, Math.floor(threads.length / 2)),
+                    depth: Math.min(5, threads.length),
+                    narrative: 'Live voxel garden fractional analysis session'
+                };
+            }
+            
+            simulateFractionalAnalysis(sessionData) {
+                // Mock fractional FFT analysis results
+                const analysis = {
+                    temporalPatterns: {},
+                    semanticStructures: {},
+                    emergentProperties: {},
+                    hyperstiousSignatures: {},
+                    crossDomainCorrelations: {},
+                    features: {
+                        dominantFrequencies: {},
+                        energyDistribution: {}
+                    },
+                    hyperstitiousPatterns: {
+                        emergentFrequencies: [],
+                        synchronicities: [],
+                        recursiveLoops: [],
+                        temporalAnomalies: [],
+                        causalInversions: []
+                    }
+                };
+                
+                // Generate mock patterns based on garden complexity
+                const complexity = sessionData.threads.reduce((sum, t) => sum + (t.complexity || 0), 0) / sessionData.threads.length;
+                const diversityScore = new Set(sessionData.threads.map(t => t.symmetryType)).size / 5; // Max 5 symmetry types
+                
+                // Generate hyperstitious signatures
+                sessionData.threads.forEach((thread, index) => {
+                    if (Math.random() > 0.7) { // 30% chance of emergent frequency
+                        analysis.hyperstitiousPatterns.emergentFrequencies.push({
+                            signal: thread.id,
+                            frequency: Math.floor(Math.random() * 32),
+                            magnitude: Math.random() * 2 + 1,
+                            phase: Math.random() * Math.PI * 2,
+                            anomalyScore: Math.random() * 0.5 + 0.5
+                        });
+                    }
+                    
+                    if (complexity > 0.6 && Math.random() > 0.8) { // Temporal anomalies in complex gardens
+                        analysis.hyperstitiousPatterns.temporalAnomalies.push({
+                            signal: thread.id,
+                            type: 'temporal_phase_inversion',
+                            strength: Math.random() * 0.4 + 0.6,
+                            description: 'Future flower growth patterns influencing past voxel placement'
+                        });
+                    }
+                });
+                
+                // Add recursive loops for repetitive patterns
+                if (diversityScore < 0.4) { // Low diversity suggests recursion
+                    analysis.hyperstitiousPatterns.recursiveLoops.push({
+                        domain: 'emergentProperties',
+                        signal: 'complexity',
+                        recursiveness: 0.8,
+                        selfSimilarityScale: 3
+                    });
+                }
+                
+                const report = {
+                    summary: {
+                        totalSignals: sessionData.threads.length,
+                        dominantOrder: complexity > 0.7 ? 'hyperstitious' : diversityScore > 0.6 ? 'emergent' : 'semantic',
+                        complexity: complexity,
+                        coherence: 1 - diversityScore // Inverse of diversity
+                    },
+                    patterns: {
+                        temporal: { peakFrequency: Math.floor(Math.random() * 16) },
+                        semantic: { meanMagnitude: complexity },
+                        emergent: { spectralCentroid: diversityScore * 16 },
+                        hyperstitious: { bandwidth: Math.floor(Math.random() * 8) + 2 }
+                    },
+                    recommendations: []
+                };
+                
+                // Generate contextual recommendations
+                if (complexity < 0.3) {
+                    report.recommendations.push("Garden shows low complexity - consider adding more diverse flower types");
+                }
+                if (diversityScore > 0.8) {
+                    report.recommendations.push("High pattern diversity detected - excellent for emergent behavior study");
+                }
+                if (analysis.hyperstitiousPatterns.emergentFrequencies.length > 0) {
+                    report.recommendations.push("Hyperstitious frequencies detected - unusual patterns emerging from the void");
+                }
+                if (analysis.hyperstitiousPatterns.temporalAnomalies.length > 0) {
+                    report.recommendations.push("Temporal anomalies suggest non-causal relationships in flower growth");
+                }
+                
+                analysis.report = report;
+                return analysis;
+            }
+            
+            displayAnalysisResults(analysis) {
+                const report = analysis.report;
+                
+                let message = `🔬 Fractional FFT Analysis Results\\n\\n`;
+                message += `📊 Summary:\\n`;
+                message += `- Total Signals: ${report.summary.totalSignals}\\n`;
+                message += `- Dominant Order: ${report.summary.dominantOrder}\\n`;
+                message += `- Complexity: ${(report.summary.complexity * 100).toFixed(1)}%\\n`;
+                message += `- Coherence: ${(report.summary.coherence * 100).toFixed(1)}%\\n\\n`;
+                
+                if (analysis.hyperstitiousPatterns.emergentFrequencies.length > 0) {
+                    message += `🌀 Hyperstitious Patterns:\\n`;
+                    message += `- Emergent Frequencies: ${analysis.hyperstitiousPatterns.emergentFrequencies.length}\\n`;
+                    message += `- Temporal Anomalies: ${analysis.hyperstitiousPatterns.temporalAnomalies.length}\\n`;
+                    message += `- Recursive Loops: ${analysis.hyperstitiousPatterns.recursiveLoops.length}\\n\\n`;
+                }
+                
+                if (report.recommendations.length > 0) {
+                    message += `💡 Recommendations:\\n`;
+                    report.recommendations.forEach(rec => {
+                        message += `- ${rec}\\n`;
+                    });
+                }
+                
+                alert(message);
+                
+                // Store results for future use
+                this.fractionalResults = analysis;
+                
+                console.log('📈 Full Analysis Results:', analysis);
+            }
+            
+            applyAnalysisVisualization(analysis) {
+                // Visual effects based on analysis results
+                const report = analysis.report;
+                
+                // Color modulation based on dominant order
+                let colorShift = 0;
+                switch (report.summary.dominantOrder) {
+                    case 'hyperstitious':
+                        colorShift = 0.8; // Purple/magenta shift
+                        break;
+                    case 'emergent':
+                        colorShift = 0.3; // Green shift
+                        break;
+                    case 'semantic':
+                        colorShift = 0.6; // Blue shift
+                        break;
+                    default:
+                        colorShift = 0.15; // Orange shift
+                }
+                
+                // Apply color effects to existing voxels
+                this.voxels.forEach((voxel, index) => {
+                    if (Math.random() < report.summary.complexity) { // Complexity-based probability
+                        const hsl = new THREE.Color();
+                        hsl.setHSL(colorShift, 0.8, 0.6);
+                        voxel.material.color.lerp(hsl, 0.3);
+                        voxel.material.emissive.copy(hsl).multiplyScalar(0.1);
+                    }
+                });
+                
+                // Create hyperstitious frequency visualization
+                analysis.hyperstitiousPatterns.emergentFrequencies.forEach(freq => {
+                    if (Math.random() > 0.7) { // Only visualize some frequencies
+                        const x = (Math.random() - 0.5) * 8;
+                        const y = 3 + Math.random() * 2;
+                        const z = (Math.random() - 0.5) * 8;
+                        
+                        // Create glowing marker for emergent frequency
+                        const geometry = new THREE.SphereGeometry(0.1, 8, 6);
+                        const material = new THREE.MeshBasicMaterial({
+                            color: 0xff00ff,
+                            transparent: true,
+                            opacity: 0.7
+                        });
+                        const marker = new THREE.Mesh(geometry, material);
+                        marker.position.set(x, y, z);
+                        
+                        this.scene.add(marker);
+                        
+                        // Animate the marker
+                        const animate = () => {
+                            marker.rotation.x += 0.02;
+                            marker.rotation.y += 0.03;
+                            marker.scale.setScalar(1 + Math.sin(Date.now() * 0.01) * 0.2);
+                        };
+                        
+                        // Remove after 5 seconds
+                        setTimeout(() => {
+                            this.scene.remove(marker);
+                        }, 5000);
+                        
+                        const animationId = setInterval(animate, 16);
+                        setTimeout(() => clearInterval(animationId), 5000);
+                    }
+                });
+                
+                console.log('✨ Applied fractional analysis visualization effects');
+            }
+            
+            startRenderLoop() {
+                let lastTime = 0;
+                
+                const animate = (currentTime) => {
+                    requestAnimationFrame(animate);
+                    
+                    const deltaTime = (currentTime - lastTime) / 1000;
+                    lastTime = currentTime;
+                    
+                    // Update physics
+                    if (this.physicsEnabled) {
+                        this.world.step(1/60);
+                        
+                        // Sync visual objects with physics bodies
+                        this.voxels.forEach(voxel => {
+                            if (voxel.userData.body) {
+                                voxel.position.copy(voxel.userData.body.position);
+                                voxel.quaternion.copy(voxel.userData.body.quaternion);
+                            }
+                        });
+                    }
+                    
+                    // Calculate FPS
+                    const fps = Math.round(1 / deltaTime);
+                    document.getElementById('fps').textContent = isNaN(fps) ? 60 : fps;
+                    
+                    // Animate lights
+                    const time = currentTime * 0.001;
+                    this.scene.children.forEach(child => {
+                        if (child instanceof THREE.PointLight) {
+                            child.intensity = 0.5 + Math.sin(time + child.position.x) * 0.2;
+                        }
+                    });
+                    
+                    this.renderer.render(this.scene, this.camera);
+                };
+                
+                animate(0);
+            }
+        }
+        
+        // Initialize the live demo
+        window.addEventListener('load', () => {
+            new LiveVoxelGarden();
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (window.garden) {
+                window.garden.camera.aspect = window.innerWidth / window.innerHeight;
+                window.garden.camera.updateProjectionMatrix();
+                window.garden.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        });
+    </script>
+</body>
+</html>
