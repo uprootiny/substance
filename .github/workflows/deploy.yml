@@ -34,9 +34,9 @@ jobs:
       run: |
         npm cache clean --force
         if [ -f package-lock.json ]; then
-          npm ci --prefer-offline --no-audit
+          npm ci --no-audit --fetch-timeout=60000
         else
-          npm install --prefer-offline --no-audit
+          npm install --no-audit --fetch-timeout=60000
         fi
       
     - name: 🏗️ Build Vite application

@@ -366,7 +366,11 @@
                         break;
                 }
                 
-                this.flowers.push({ type: symmetryType, time: Date.now() });
+                this.flowers.push({ 
+                    type: symmetryType, 
+                    time: Date.now(), 
+                    voxelCount: this.voxels.length 
+                });
                 this.updateStats();
             }
             
@@ -597,11 +601,11 @@
                 this.flowers.forEach((flower, index) => {
                     const thread = {
                         id: `flower-thread-${index}`,
-                        content: `Generated ${flower.symmetry} flower with ${flower.voxelCount} voxels using physics simulation`,
+                        content: `Generated ${flower.type} flower with ${flower.voxelCount} voxels using physics simulation`,
                         timestamp: Date.now() - (index * 30000), // 30 seconds apart
                         interactions: Math.floor(Math.random() * 20) + 5,
                         complexity: Math.random() * 0.8 + 0.2,
-                        symmetryType: flower.symmetry
+                        symmetryType: flower.type
                     };
                     threads.push(thread);
                 });
