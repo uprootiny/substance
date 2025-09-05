@@ -1,0 +1,58 @@
+name: 🌸 Simple GitHub Pages Deploy
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🌱 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🌸 Copy files to root for GitHub Pages
+      run: |
+        # GitHub Pages serves from root by default
+        # Make sure index.html is at the root level
+        echo "📋 Current files:"
+        ls -la *.html
+        
+        # Create a simple index if none exists
+        if [ ! -f index.html ]; then
+          echo "⚠️ No index.html found, using live-demo.html as index"
+          cp live-demo.html index.html
+        fi
+        
+        echo "✅ Files ready for GitHub Pages deployment"
+        
+    - name: 🚀 Deploy to GitHub Pages branch
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Create orphan gh-pages branch
+        git checkout --orphan gh-pages
+        
+        # Remove all files from git index
+        git rm -rf . || true
+        
+        # Add only HTML files and necessary assets
+        git add *.html 2>/dev/null || true
+        git add README.md 2>/dev/null || true
+        
+        # Commit
+        git commit -m "Deploy to GitHub Pages" || echo "No changes to commit"
+        
+        # Force push to gh-pages branch
+        git push origin gh-pages --force
+        
+        echo "🎉 Deployed to GitHub Pages!"
+        echo "🔗 Your site should be available at: https://uprootiny.github.io/substance/"
