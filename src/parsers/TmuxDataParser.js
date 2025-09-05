@@ -1,8 +1,10 @@
 import { createNoise2D } from 'simplex-noise';
+import { FractionalFFT } from '../analysis/FractionalFFT.js';
 
 export class TmuxDataParser {
     constructor() {
         this.noise2D = createNoise2D();
+        this.fractionalFFT = new FractionalFFT();
         
         // Pattern recognition for different types of content
         this.contentPatterns = {
@@ -64,6 +66,18 @@ export class TmuxDataParser {
         parsed.temporalFlow = this.analyzeTemporalFlow(sessionData.threads);
         parsed.semanticDensity = this.calculateSemanticDensity(parsed.threads);
         parsed.narrativeCoherence = this.calculateNarrativeCoherence(sessionData);
+
+        // Add fractional Fourier transform analysis
+        try {
+            parsed.fractionalAnalysis = this.fractionalFFT.analyzeSessionData(parsed);
+            parsed.fractionalReport = this.fractionalFFT.generateAnalysisReport(parsed.fractionalAnalysis);
+            parsed.hyperstitiousPatterns = this.extractHyperstitiousPatterns(parsed.fractionalAnalysis);
+        } catch (error) {
+            console.warn('Fractional FFT analysis failed:', error.message);
+            parsed.fractionalAnalysis = null;
+            parsed.fractionalReport = null;
+            parsed.hyperstitiousPatterns = null;
+        }
 
         return parsed;
     }
@@ -446,5 +460,397 @@ export class TmuxDataParser {
                line.includes('➜') ||
                line.includes('$') ||
                line.includes('#');
+    }
+
+    /**
+     * Extract hyperstitious patterns from fractional analysis
+     * These are emergent patterns that seem to transcend normal cause-effect relationships
+     */
+    extractHyperstitiousPatterns(fractionalAnalysis) {
+        if (!fractionalAnalysis || !fractionalAnalysis.hyperstiousSignatures) {
+            return null;
+        }
+
+        const patterns = {
+            emergentFrequencies: [],
+            synchronicities: [],
+            recursiveLoops: [],
+            temporalAnomalies: [],
+            semanticResonance: {},
+            causalInversions: []
+        };
+
+        // Analyze hyperstitious signatures for anomalous patterns
+        const signatures = fractionalAnalysis.hyperstiousSignatures;
+        
+        for (const [signalName, transform] of Object.entries(signatures)) {
+            const magnitudes = transform.map(c => Math.sqrt(c.re * c.re + c.im * c.im));
+            const phases = transform.map(c => Math.atan2(c.im, c.re));
+            
+            // Look for emergent frequencies (peaks in hyperstitious domain)
+            const meanMagnitude = magnitudes.reduce((sum, mag) => sum + mag, 0) / magnitudes.length;
+            const threshold = meanMagnitude + 2 * this.calculateStandardDeviation(magnitudes);
+            
+            magnitudes.forEach((mag, index) => {
+                if (mag > threshold) {
+                    patterns.emergentFrequencies.push({
+                        signal: signalName,
+                        frequency: index,
+                        magnitude: mag,
+                        phase: phases[index],
+                        anomalyScore: (mag - meanMagnitude) / threshold
+                    });
+                }
+            });
+
+            // Detect synchronicities (phase alignments across different signals)
+            patterns.semanticResonance[signalName] = {
+                phaseCoherence: this.calculatePhaseCoherence(phases),
+                magnitudeClusters: this.findMagnitudeClusters(magnitudes),
+                temporalSignature: this.extractTemporalSignature(transform)
+            };
+        }
+
+        // Look for recursive loops (self-similar patterns)
+        patterns.recursiveLoops = this.detectRecursivePatterns(fractionalAnalysis);
+
+        // Identify temporal anomalies (non-causal relationships)
+        patterns.temporalAnomalies = this.detectTemporalAnomalies(fractionalAnalysis);
+
+        // Find causal inversions (effect preceding cause)
+        patterns.causalInversions = this.detectCausalInversions(fractionalAnalysis);
+
+        return patterns;
+    }
+
+    calculateStandardDeviation(values) {
+        const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+        const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+        return Math.sqrt(variance);
+    }
+
+    calculatePhaseCoherence(phases) {
+        if (phases.length < 2) return 0;
+        
+        // Calculate circular variance of phases
+        let sumCos = 0, sumSin = 0;
+        for (const phase of phases) {
+            sumCos += Math.cos(phase);
+            sumSin += Math.sin(phase);
+        }
+        
+        const r = Math.sqrt(sumCos * sumCos + sumSin * sumSin) / phases.length;
+        return r; // High r indicates high phase coherence
+    }
+
+    findMagnitudeClusters(magnitudes) {
+        // Simple clustering to find groups of similar magnitudes
+        const sorted = [...magnitudes].sort((a, b) => a - b);
+        const clusters = [];
+        let currentCluster = [sorted[0]];
+        
+        for (let i = 1; i < sorted.length; i++) {
+            if (sorted[i] - sorted[i-1] < 0.1 * sorted[i]) {
+                currentCluster.push(sorted[i]);
+            } else {
+                if (currentCluster.length > 1) {
+                    clusters.push({
+                        center: currentCluster.reduce((sum, val) => sum + val, 0) / currentCluster.length,
+                        size: currentCluster.length,
+                        range: [Math.min(...currentCluster), Math.max(...currentCluster)]
+                    });
+                }
+                currentCluster = [sorted[i]];
+            }
+        }
+        
+        if (currentCluster.length > 1) {
+            clusters.push({
+                center: currentCluster.reduce((sum, val) => sum + val, 0) / currentCluster.length,
+                size: currentCluster.length,
+                range: [Math.min(...currentCluster), Math.max(...currentCluster)]
+            });
+        }
+        
+        return clusters;
+    }
+
+    extractTemporalSignature(transform) {
+        // Extract unique temporal characteristics from the transform
+        const magnitudes = transform.map(c => Math.sqrt(c.re * c.re + c.im * c.im));
+        const phases = transform.map(c => Math.atan2(c.im, c.re));
+        
+        return {
+            entropy: this.calculateEntropy(magnitudes),
+            symmetryIndex: this.calculateSymmetryIndex(magnitudes),
+            fractalDimension: this.estimateFractalDimension(magnitudes),
+            informationContent: this.calculateInformationContent(transform)
+        };
+    }
+
+    calculateEntropy(values) {
+        // Calculate Shannon entropy of the magnitude distribution
+        const total = values.reduce((sum, val) => sum + val, 0);
+        if (total === 0) return 0;
+        
+        const probabilities = values.map(val => val / total).filter(p => p > 0);
+        return -probabilities.reduce((entropy, p) => entropy + p * Math.log2(p), 0);
+    }
+
+    calculateSymmetryIndex(values) {
+        // Measure how symmetric the distribution is around its center
+        const n = values.length;
+        let symmetryScore = 0;
+        
+        for (let i = 0; i < Math.floor(n/2); i++) {
+            const leftVal = values[i];
+            const rightVal = values[n - 1 - i];
+            symmetryScore += Math.abs(leftVal - rightVal);
+        }
+        
+        const maxVal = Math.max(...values);
+        return maxVal > 0 ? 1 - (symmetryScore / (Math.floor(n/2) * maxVal)) : 1;
+    }
+
+    estimateFractalDimension(values) {
+        // Simplified box-counting approach to estimate fractal dimension
+        if (values.length < 4) return 1;
+        
+        const scales = [2, 4, 8, Math.min(16, Math.floor(values.length/2))];
+        const counts = scales.map(scale => this.boxCount(values, scale));
+        
+        // Linear regression on log-log plot
+        const logScales = scales.map(s => Math.log(1/s));
+        const logCounts = counts.map(c => Math.log(c));
+        
+        return this.linearRegression(logScales, logCounts).slope;
+    }
+
+    boxCount(values, boxSize) {
+        const boxes = new Set();
+        for (let i = 0; i < values.length - 1; i++) {
+            const x = Math.floor(i / boxSize);
+            const y = Math.floor(values[i] * 100 / boxSize); // Scale values for counting
+            boxes.add(`${x},${y}`);
+        }
+        return boxes.size;
+    }
+
+    linearRegression(x, y) {
+        const n = x.length;
+        const sumX = x.reduce((sum, val) => sum + val, 0);
+        const sumY = y.reduce((sum, val) => sum + val, 0);
+        const sumXY = x.reduce((sum, val, i) => sum + val * y[i], 0);
+        const sumXX = x.reduce((sum, val) => sum + val * val, 0);
+        
+        const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+        
+        return { slope, intercept };
+    }
+
+    calculateInformationContent(transform) {
+        // Calculate algorithmic information content (approximation)
+        const magnitudes = transform.map(c => Math.sqrt(c.re * c.re + c.im * c.im));
+        const quantized = magnitudes.map(mag => Math.floor(mag * 100) / 100);
+        const unique = new Set(quantized);
+        
+        return Math.log2(unique.size) / Math.log2(magnitudes.length);
+    }
+
+    detectRecursivePatterns(fractionalAnalysis) {
+        // Look for self-similar patterns across different scales and domains
+        const patterns = [];
+        const domains = Object.keys(fractionalAnalysis).filter(key => 
+            key.endsWith('Patterns') || key.endsWith('Structures') || key.endsWith('Properties') || key.endsWith('Signatures')
+        );
+
+        for (const domain of domains) {
+            const transforms = fractionalAnalysis[domain];
+            for (const [signalName, transform] of Object.entries(transforms)) {
+                const recursiveScore = this.calculateRecursiveness(transform);
+                if (recursiveScore > 0.7) {
+                    patterns.push({
+                        domain,
+                        signal: signalName,
+                        recursiveness: recursiveScore,
+                        selfSimilarityScale: this.findSelfSimilarScale(transform)
+                    });
+                }
+            }
+        }
+
+        return patterns;
+    }
+
+    calculateRecursiveness(transform) {
+        // Measure self-similarity at different scales
+        const magnitudes = transform.map(c => Math.sqrt(c.re * c.re + c.im * c.im));
+        let maxSimilarity = 0;
+        
+        // Check different scale relationships
+        for (let scale = 2; scale <= 8; scale++) {
+            const similarity = this.calculateScaleSimilarity(magnitudes, scale);
+            maxSimilarity = Math.max(maxSimilarity, similarity);
+        }
+        
+        return maxSimilarity;
+    }
+
+    calculateScaleSimilarity(values, scale) {
+        if (values.length < scale * 2) return 0;
+        
+        const segmentLength = Math.floor(values.length / scale);
+        const segments = [];
+        
+        for (let i = 0; i < scale; i++) {
+            const start = i * segmentLength;
+            const end = Math.min(start + segmentLength, values.length);
+            segments.push(values.slice(start, end));
+        }
+        
+        // Calculate average correlation between segments
+        let totalCorrelation = 0;
+        let comparisons = 0;
+        
+        for (let i = 0; i < segments.length; i++) {
+            for (let j = i + 1; j < segments.length; j++) {
+                totalCorrelation += this.calculateCorrelation(segments[i], segments[j]);
+                comparisons++;
+            }
+        }
+        
+        return comparisons > 0 ? totalCorrelation / comparisons : 0;
+    }
+
+    calculateCorrelation(array1, array2) {
+        const minLength = Math.min(array1.length, array2.length);
+        if (minLength === 0) return 0;
+        
+        const a1 = array1.slice(0, minLength);
+        const a2 = array2.slice(0, minLength);
+        
+        const mean1 = a1.reduce((sum, val) => sum + val, 0) / minLength;
+        const mean2 = a2.reduce((sum, val) => sum + val, 0) / minLength;
+        
+        let numerator = 0;
+        let sum1Sq = 0;
+        let sum2Sq = 0;
+        
+        for (let i = 0; i < minLength; i++) {
+            const diff1 = a1[i] - mean1;
+            const diff2 = a2[i] - mean2;
+            numerator += diff1 * diff2;
+            sum1Sq += diff1 * diff1;
+            sum2Sq += diff2 * diff2;
+        }
+        
+        const denominator = Math.sqrt(sum1Sq * sum2Sq);
+        return denominator > 0 ? numerator / denominator : 0;
+    }
+
+    findSelfSimilarScale(transform) {
+        // Find the scale at which the pattern is most self-similar
+        const magnitudes = transform.map(c => Math.sqrt(c.re * c.re + c.im * c.im));
+        let bestScale = 2;
+        let bestSimilarity = 0;
+        
+        for (let scale = 2; scale <= 8; scale++) {
+            const similarity = this.calculateScaleSimilarity(magnitudes, scale);
+            if (similarity > bestSimilarity) {
+                bestSimilarity = similarity;
+                bestScale = scale;
+            }
+        }
+        
+        return bestScale;
+    }
+
+    detectTemporalAnomalies(fractionalAnalysis) {
+        // Look for patterns that suggest non-linear time relationships
+        const anomalies = [];
+        
+        if (!fractionalAnalysis.temporalPatterns || !fractionalAnalysis.emergentProperties) {
+            return anomalies;
+        }
+        
+        // Compare temporal vs emergent domains for phase relationships
+        const temporalSignals = Object.keys(fractionalAnalysis.temporalPatterns);
+        const emergentSignals = Object.keys(fractionalAnalysis.emergentProperties);
+        
+        for (const signal of temporalSignals) {
+            if (emergentSignals.includes(signal)) {
+                const temporalPhases = fractionalAnalysis.temporalPatterns[signal]
+                    .map(c => Math.atan2(c.im, c.re));
+                const emergentPhases = fractionalAnalysis.emergentProperties[signal]
+                    .map(c => Math.atan2(c.im, c.re));
+                
+                const phaseInversion = this.detectPhaseInversion(temporalPhases, emergentPhases);
+                if (phaseInversion > 0.6) {
+                    anomalies.push({
+                        signal,
+                        type: 'temporal_phase_inversion',
+                        strength: phaseInversion,
+                        description: 'Future states appear to influence past states'
+                    });
+                }
+            }
+        }
+        
+        return anomalies;
+    }
+
+    detectPhaseInversion(phases1, phases2) {
+        // Detect if phase relationships are inverted (suggesting backward causality)
+        const minLength = Math.min(phases1.length, phases2.length);
+        if (minLength < 3) return 0;
+        
+        let inversionCount = 0;
+        for (let i = 0; i < minLength - 1; i++) {
+            const diff1 = phases1[i+1] - phases1[i];
+            const diff2 = phases2[i+1] - phases2[i];
+            
+            // Normalize phase differences to [-π, π]
+            const normDiff1 = Math.atan2(Math.sin(diff1), Math.cos(diff1));
+            const normDiff2 = Math.atan2(Math.sin(diff2), Math.cos(diff2));
+            
+            // Check if phase changes are in opposite directions
+            if (normDiff1 * normDiff2 < -0.5) {
+                inversionCount++;
+            }
+        }
+        
+        return inversionCount / (minLength - 1);
+    }
+
+    detectCausalInversions(fractionalAnalysis) {
+        // Look for patterns where effects seem to precede causes
+        const inversions = [];
+        
+        if (!fractionalAnalysis.crossDomainCorrelations) {
+            return inversions;
+        }
+        
+        // Analyze cross-correlations for negative lag peaks (effect before cause)
+        for (const [pairName, correlation] of Object.entries(fractionalAnalysis.crossDomainCorrelations)) {
+            const magnitudes = correlation.map(c => Math.sqrt(c.re * c.re + c.im * c.im));
+            const peakIndex = magnitudes.indexOf(Math.max(...magnitudes));
+            const centerIndex = Math.floor(magnitudes.length / 2);
+            
+            if (peakIndex < centerIndex - 2) { // Significant negative lag
+                const lag = peakIndex - centerIndex;
+                const strength = magnitudes[peakIndex] / Math.max(...magnitudes);
+                
+                inversions.push({
+                    signalPair: pairName,
+                    lag,
+                    strength,
+                    type: 'causal_inversion',
+                    description: `Effect appears ${Math.abs(lag)} steps before cause`
+                });
+            }
+        }
+        
+        return inversions;
     }
 }

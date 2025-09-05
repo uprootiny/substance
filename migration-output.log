@@ -1,0 +1,24 @@
+[0;34m🚀 Migration to 173.212.203.211 (4173 server)[0m
+[0;34mDate: 2025-09-04[0m
+
+[0;34mStarting migration process...[0m
+[0;34m🔗 Testing SSH connection to 173.212.203.211...[0m
+Connection test successful
+[0;32m✅ SSH connection successful[0m
+[0;34m🏗️  Preparing target server...[0m
+mkdir: cannot create directory ‘/var/www’: Permission denied
+Node.js not found - will need to install for substance project
+Target server prepared successfully
+[0;32m✅ Target server prepared[0m
+[0;34m📦 Migrating numerai-shiveringtopoi...[0m
+sending incremental file list
+.git/
+.git/index
+            523 100%    0.00kB/s    0:00:00              523 100%    0.00kB/s    0:00:00 (xfr#1, to-chk=49/71)
+
+sent 2,758 bytes  received 77 bytes  1,890.00 bytes/sec
+total size is 32,972  speedup is 11.63
+[0;32m✅ numerai-shiveringtopoi: Files transferred[0m
+Git repo intact
+bbb16ac 🎯 Initialize shiveringtopoi model following AI playbook
+[0;32m✅ numerai-shiveringtopoi: Git repository verified[0m
