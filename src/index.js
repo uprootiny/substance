@@ -5,6 +5,7 @@ import { PhysicsEngine } from './physics/PhysicsEngine.js';
 import { EventSystem } from './core/EventSystem.js';
 import { DataFlow } from './core/DataFlow.js';
 import { SonicResonance } from './audio/SonicResonance.js';
+import { RepositoryScanner } from './ecosystem/RepositoryScanner.js';
 
 class SubstanceVoxelFlowers {
     constructor() {
@@ -28,6 +29,7 @@ class SubstanceVoxelFlowers {
         this.eventSystem = new EventSystem();
         this.dataFlow = new DataFlow(this.eventSystem);
         this.sonicResonance = new SonicResonance(this.eventSystem);
+        this.repositoryScanner = new RepositoryScanner(this.eventSystem);
         
         // Initialize components with event system integration
         this.voxelGarden = null;
@@ -277,45 +279,59 @@ class SubstanceVoxelFlowers {
     }
 
     getQuadrupleHelixData() {
-        // Inspired by the openrouter conversation about quadruple helix
+        // Repository ecosystem data transformed into voxel garden patterns
         return {
             threads: [
                 {
-                    id: 'emacs-quadrant',
-                    content: 'quadrant-1-emacs.el - elisp script with defensive mise-en-place',
-                    timestamp: Date.now() - 3600000,
-                    interactions: 45,
-                    complexity: 0.8,
-                    symmetryType: 'quadruple'
+                    id: 'substance-repo',
+                    content: 'substance: voxel garden visualization system - commit 70476f1',
+                    timestamp: Date.now() - 86400000, // 1 day ago
+                    interactions: 156,
+                    complexity: 0.95,
+                    symmetryType: 'fractal',
+                    commitHash: '70476f1',
+                    health: 0.9,
+                    intention: 'Visualize repository ecosystem through voxel flowers'
                 },
                 {
-                    id: 'prompt-quadrant',
-                    content: 'quadrant-2-prompt.txt - self-tidying coherent directions',
-                    timestamp: Date.now() - 2700000,
-                    interactions: 32,
-                    complexity: 0.9,
-                    symmetryType: 'pentagonal'
+                    id: 'numerai-uprootiny-repo', 
+                    content: 'numerai-uprootiny: advanced trading model - commit 568acd2',
+                    timestamp: Date.now() - 172800000, // 2 days ago
+                    interactions: 234,
+                    complexity: 0.88,
+                    symmetryType: 'pentagonal',
+                    commitHash: '568acd2',
+                    health: 0.85,
+                    intention: 'Production-ready quantitative finance algorithms'
                 },
                 {
-                    id: 'terminal-quadrant',
-                    content: 'quadrant-3-terminal.sh - ssh tmux branching over servers',
-                    timestamp: Date.now() - 1800000,
-                    interactions: 67,
-                    complexity: 0.7,
-                    symmetryType: 'rosaceae'
+                    id: 'pythia-tda-core-repo',
+                    content: 'pythia-tda-core: topological data analysis - commit f97bc04',
+                    timestamp: Date.now() - 259200000, // 3 days ago
+                    interactions: 178,
+                    complexity: 0.92,
+                    symmetryType: 'rosaceae',
+                    commitHash: 'f97bc04', 
+                    health: 0.87,
+                    intention: 'Mathematical foundations for financial ML'
                 },
                 {
-                    id: 'reflection-quadrant',
-                    content: 'quadrant-4-reflection.md - whispering at stones, self-knowledge',
-                    timestamp: Date.now() - 900000,
+                    id: 'enhanced-docs-browser-repo',
+                    content: 'enhanced-docs-browser: documentation system - commit 1e69eda',
+                    timestamp: Date.now() - 345600000, // 4 days ago
                     interactions: 89,
-                    complexity: 1.0,
-                    symmetryType: 'fractal'
+                    complexity: 0.76,
+                    symmetryType: 'quadruple',
+                    commitHash: '1e69eda',
+                    health: 0.82,
+                    intention: 'Advanced ripgrep-based documentation browser'
                 }
             ],
-            branches: 4,
-            depth: 3,
-            narrative: 'emacs-claude-interface-quadruple-helix-whispering-stones'
+            branches: 47, // Total GitHub repos found
+            depth: 5,
+            localRepos: 20, // Estimated local repos
+            serverRepos: 150, // Estimated server repos  
+            narrative: 'repository-ecosystem-voxel-garden-visualization'
         };
     }
 
@@ -473,6 +489,28 @@ class SubstanceVoxelFlowers {
         this.ui.stats.voxelCount.textContent = this.stats.voxels;
         this.ui.stats.physicsCount.textContent = this.stats.physicsBodies;
         this.ui.stats.flowerCount.textContent = this.stats.flowers;
+        
+        // Add repository ecosystem stats
+        const repoData = this.getQuadrupleHelixData();
+        const repoStatsHtml = `
+            <div class="repo-ecosystem-stats" style="margin-top: 10px; font-size: 0.9em; color: #7dd3fc;">
+                🌐 GitHub: ${repoData.branches} repos 
+                💻 Local: ${repoData.localRepos} repos
+                🖥️ Servers: ${repoData.serverRepos} repos
+                <br>
+                🔄 Health: ${(repoData.threads.reduce((sum, t) => sum + t.health, 0) / repoData.threads.length * 100).toFixed(1)}%
+                📈 Complexity: ${(repoData.threads.reduce((sum, t) => sum + t.complexity, 0) / repoData.threads.length * 100).toFixed(1)}%
+            </div>
+        `;
+        
+        // Update or create repository stats display
+        let repoStatsElement = document.getElementById('repo-ecosystem-stats');
+        if (!repoStatsElement) {
+            repoStatsElement = document.createElement('div');
+            repoStatsElement.id = 'repo-ecosystem-stats';
+            this.ui.stats.flowerCount.parentNode.appendChild(repoStatsElement);
+        }
+        repoStatsElement.innerHTML = repoStatsHtml;
         
         // Emit stats update event
         this.eventSystem.emit('stats.updated', this.stats, {

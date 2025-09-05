@@ -5,6 +5,13 @@ export class FlowerGrowthEngine {
         this.noise3D = createNoise3D();
         this.noise2D = createNoise2D();
         
+        // Commit hash to pattern mapping for repository-driven flowers
+        this.hashToPatternMap = {
+            '0': 'organic', '1': 'quadruple', '2': 'pentagonal', '3': 'rosaceae', '4': 'fractal',
+            '5': 'organic', '6': 'quadruple', '7': 'pentagonal', '8': 'rosaceae', '9': 'fractal',
+            'a': 'organic', 'b': 'quadruple', 'c': 'pentagonal', 'd': 'rosaceae', 'e': 'fractal', 'f': 'organic'
+        };
+        
         // Growth parameters for different symmetry types
         this.symmetryConfigs = {
             quadruple: {
@@ -66,6 +73,16 @@ export class FlowerGrowthEngine {
     }
 
     generateFlowerSpec(parsedData, growthMode = 'organic') {
+        // If we have repository data with commit hash, use it for pattern generation
+        if (parsedData.threads && parsedData.threads[0] && parsedData.threads[0].commitHash) {
+            const firstHash = parsedData.threads[0].commitHash;
+            const hashPattern = this.hashToPatternMap[firstHash.charAt(0)];
+            if (hashPattern && this.symmetryConfigs[hashPattern]) {
+                growthMode = hashPattern;
+                console.log(`🌸 Repository flower: ${firstHash} → ${hashPattern} pattern`);
+            }
+        }
+        
         const config = this.symmetryConfigs[growthMode] || this.symmetryConfigs.organic;
         
         // Extract key metrics from parsed data
