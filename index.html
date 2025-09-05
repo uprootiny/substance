@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Substance: Voxel Flower Visualization</title>
+    <title>🌸 Substance Voxel Flowers - Fractional FFT Analysis</title>
     <style>
         * {
             margin: 0;
@@ -12,179 +12,734 @@
         }
 
         body {
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            color: #e0e6ed;
             font-family: 'Courier New', monospace;
-            background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 100%);
             overflow: hidden;
-            color: #fff;
+            position: relative;
         }
 
         #container {
-            position: relative;
             width: 100vw;
             height: 100vh;
+            position: relative;
         }
 
-        #canvas-container {
-            position: absolute;
-            top: 0;
-            left: 0;
+        #canvas {
+            display: block;
             width: 100%;
             height: 100%;
         }
 
-        #ui {
+        .controls {
             position: absolute;
             top: 20px;
             left: 20px;
             z-index: 1000;
             background: rgba(0, 0, 0, 0.8);
-            padding: 20px;
+            padding: 15px;
             border-radius: 10px;
-            border: 1px solid #333;
+            border: 2px solid #4a90e2;
             backdrop-filter: blur(10px);
-            min-width: 300px;
+            max-width: 280px;
         }
 
-        #ui h1 {
-            color: #ff6b6b;
-            font-size: 1.5em;
-            margin-bottom: 15px;
-            text-shadow: 0 0 10px #ff6b6b;
-        }
-
-        #ui p {
-            color: #aaa;
+        .controls h3 {
+            color: #4a90e2;
             margin-bottom: 10px;
-            font-size: 0.9em;
+            font-size: 14px;
+            text-shadow: 0 0 5px #4a90e2;
         }
 
         .control-group {
-            margin: 15px 0;
+            margin-bottom: 12px;
         }
 
         .control-group label {
             display: block;
-            color: #ccc;
-            margin-bottom: 5px;
-            font-size: 0.9em;
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: #b0c4de;
         }
 
-        .control-group select, .control-group button {
-            width: 100%;
-            padding: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid #555;
+        button {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            font-size: 11px;
             border-radius: 5px;
-            color: #fff;
+            cursor: pointer;
+            margin: 2px;
+            transition: all 0.3s ease;
             font-family: 'Courier New', monospace;
         }
 
-        .control-group button {
-            cursor: pointer;
-            transition: all 0.3s ease;
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .control-group button:hover {
-            background: rgba(255, 107, 107, 0.2);
-            border-color: #ff6b6b;
+        button:active {
+            transform: translateY(0);
         }
 
-        #stats {
+        select, input[type="range"] {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #4a90e2;
+            color: #e0e6ed;
+            padding: 4px;
+            border-radius: 3px;
+            font-size: 11px;
+            width: 100%;
+        }
+
+        input[type="range"] {
+            height: 20px;
+        }
+
+        .stats {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #50c878;
+            backdrop-filter: blur(10px);
+            font-size: 10px;
+            color: #50c878;
+            min-width: 200px;
+        }
+
+        .analysis-panel {
             position: absolute;
             top: 20px;
             right: 20px;
             z-index: 1000;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #333;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ff6b6b;
             backdrop-filter: blur(10px);
-            font-family: 'Courier New', monospace;
-            font-size: 0.8em;
-            min-width: 200px;
+            max-width: 250px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 10px;
         }
 
-        #stats .stat-line {
-            color: #4ecdc4;
-            margin: 5px 0;
+        .analysis-panel h4 {
+            color: #ff6b6b;
+            margin-bottom: 8px;
+            font-size: 11px;
         }
 
-        #loading {
+        .pattern-item {
+            background: rgba(255, 107, 107, 0.1);
+            padding: 6px;
+            margin: 4px 0;
+            border-radius: 4px;
+            border-left: 3px solid #ff6b6b;
+        }
+
+        .loading {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            z-index: 2000;
+            z-index: 999;
+            color: #4a90e2;
+            font-size: 18px;
             text-align: center;
-            color: #ff6b6b;
-            font-size: 1.2em;
         }
 
         .spinner {
-            border: 2px solid #333;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4a90e2;
             border-radius: 50%;
-            border-top: 2px solid #ff6b6b;
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
-            margin: 20px auto;
+            margin: 0 auto 10px;
         }
 
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        .hidden {
-            display: none;
-        }
     </style>
 </head>
 <body>
     <div id="container">
-        <div id="loading">
+        <div id="loading" class="loading">
             <div class="spinner"></div>
-            <p>Initializing Voxel Garden...</p>
+            <div>🌸 Loading Substance Voxel Garden...</div>
         </div>
 
-        <div id="canvas-container"></div>
+        <canvas id="canvas"></canvas>
 
-        <div id="ui">
-            <h1>🌸 Substance Voxel Flowers</h1>
-            <p>Transform tmux sessions into flowering voxel gardens</p>
+        <div class="controls">
+            <h3>🌺 Flower Controls</h3>
             
             <div class="control-group">
-                <label for="sessionSelect">Tmux Session:</label>
-                <select id="sessionSelect">
-                    <option value="sample">Sample Thread Data</option>
-                    <option value="live">Live Tmux Data</option>
+                <label>Flower Type:</label>
+                <select id="flowerType">
+                    <option value="quadruple">Quadruple Symmetry</option>
+                    <option value="pentagonal">Pentagonal</option>
+                    <option value="rosaceae">Rosaceae</option>
+                    <option value="fractal">Fractal</option>
+                    <option value="organic">Organic</option>
                 </select>
             </div>
 
             <div class="control-group">
-                <label for="growthMode">Growth Mode:</label>
-                <select id="growthMode">
-                    <option value="organic">Organic Growth</option>
-                    <option value="geometric">Geometric Patterns</option>
-                    <option value="fractal">Fractal Blooming</option>
-                </select>
+                <label>Complexity: <span id="complexityValue">0.7</span></label>
+                <input type="range" id="complexity" min="0.1" max="1" step="0.1" value="0.7">
             </div>
 
             <div class="control-group">
-                <button id="generateBtn">🌱 Generate Flower</button>
-                <button id="resetBtn">🔄 Reset Garden</button>
-                <button id="pauseBtn">⏸ Pause Physics</button>
+                <label>Physics Strength: <span id="physicsValue">0.5</span></label>
+                <input type="range" id="physicsStrength" min="0" max="1" step="0.1" value="0.5">
+            </div>
+
+            <div class="control-group">
+                <button id="generateFlower">🌸 Generate Flower</button>
+                <button id="runAnalysis">🔬 Fractional Analysis</button>
+                <button id="clearGarden">🗑️ Clear Garden</button>
+            </div>
+
+            <div class="control-group">
+                <button id="exportData">💾 Export Data</button>
+                <button id="togglePhysics">⚡ Toggle Physics</button>
             </div>
         </div>
 
-        <div id="stats">
-            <div class="stat-line">Voxels: <span id="voxelCount">0</span></div>
-            <div class="stat-line">Physics Bodies: <span id="physicsCount">0</span></div>
-            <div class="stat-line">FPS: <span id="fps">60</span></div>
-            <div class="stat-line">Flowers: <span id="flowerCount">0</span></div>
+        <div class="stats" id="stats">
+            <div><strong>🌺 Garden Status</strong></div>
+            <div>Flowers: <span id="flowerCount">0</span></div>
+            <div>Voxels: <span id="voxelCount">0</span></div>
+            <div>FPS: <span id="fps">0</span></div>
+            <div>Analysis Mode: <span id="analysisMode">Ready</span></div>
+        </div>
+
+        <div class="analysis-panel" id="analysisPanel" style="display: none;">
+            <h4>🔮 Fractional FFT Analysis</h4>
+            <div id="analysisResults"></div>
         </div>
     </div>
 
-    <script type="module" src="/src/index.js"></script>
+    <!-- CDN Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"></script>
+
+    <script>
+        class SubstanceVoxelGarden {
+            constructor() {
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.world = null;
+                this.flowers = [];
+                this.voxels = [];
+                this.physicsEnabled = true;
+                this.animationId = null;
+                this.clock = new THREE.Clock();
+                this.frameCount = 0;
+                this.lastFPSUpdate = 0;
+                
+                this.init();
+                this.setupEventListeners();
+                this.animate();
+            }
+
+            init() {
+                // Scene setup
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0a0a0a);
+                this.scene.fog = new THREE.Fog(0x0a0a0a, 50, 200);
+
+                // Camera setup
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(0, 20, 30);
+                this.camera.lookAt(0, 0, 0);
+
+                // Renderer setup
+                const canvas = document.getElementById('canvas');
+                this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+                // Physics world setup
+                this.world = new CANNON.World({
+                    gravity: new CANNON.Vec3(0, -9.82, 0)
+                });
+                this.world.broadphase = new CANNON.NaiveBroadphase();
+
+                // Lighting
+                this.setupLighting();
+
+                // Ground
+                this.createGround();
+
+                // Hide loading screen
+                document.getElementById('loading').style.display = 'none';
+
+                console.log('🌸 Substance Voxel Garden initialized');
+            }
+
+            setupLighting() {
+                // Ambient light
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+                this.scene.add(ambientLight);
+
+                // Main directional light
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 20, 5);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 50;
+                directionalLight.shadow.camera.left = -20;
+                directionalLight.shadow.camera.right = 20;
+                directionalLight.shadow.camera.top = 20;
+                directionalLight.shadow.camera.bottom = -20;
+                this.scene.add(directionalLight);
+
+                // Colored accent lights
+                const light1 = new THREE.PointLight(0xff6b6b, 0.5, 30);
+                light1.position.set(-10, 10, -10);
+                this.scene.add(light1);
+
+                const light2 = new THREE.PointLight(0x4ecdc4, 0.5, 30);
+                light2.position.set(10, 15, 10);
+                this.scene.add(light2);
+
+                const light3 = new THREE.PointLight(0xffe66d, 0.3, 25);
+                light3.position.set(0, 25, 0);
+                this.scene.add(light3);
+            }
+
+            createGround() {
+                const groundGeometry = new THREE.PlaneGeometry(100, 100);
+                const groundMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0x1a1a1a,
+                    transparent: true,
+                    opacity: 0.8 
+                });
+                const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+                ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                this.scene.add(ground);
+
+                // Physics ground
+                const groundShape = new CANNON.Plane();
+                const groundBody = new CANNON.Body({ mass: 0 });
+                groundBody.addShape(groundShape);
+                groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(-1, 0, 0), Math.PI / 2);
+                this.world.addBody(groundBody);
+            }
+
+            generateFlower() {
+                const flowerType = document.getElementById('flowerType').value;
+                const complexity = parseFloat(document.getElementById('complexity').value);
+                
+                const flower = this.createFlowerStructure(flowerType, complexity);
+                this.flowers.push(flower);
+                
+                this.updateStats();
+                console.log(`🌸 Generated ${flowerType} flower with complexity ${complexity}`);
+            }
+
+            createFlowerStructure(type, complexity) {
+                const flower = {
+                    type: type,
+                    complexity: complexity,
+                    voxels: [],
+                    voxelCount: 0,
+                    center: new THREE.Vector3(
+                        (Math.random() - 0.5) * 20,
+                        0,
+                        (Math.random() - 0.5) * 20
+                    )
+                };
+
+                const voxelCount = Math.floor(20 + complexity * 30);
+                
+                for (let i = 0; i < voxelCount; i++) {
+                    const voxel = this.createVoxel(flower, i, voxelCount);
+                    flower.voxels.push(voxel);
+                    this.voxels.push(voxel);
+                }
+
+                flower.voxelCount = voxelCount;
+                return flower;
+            }
+
+            createVoxel(flower, index, total) {
+                const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+                const material = new THREE.MeshPhongMaterial({
+                    color: this.getVoxelColor(flower.type, index, total),
+                    transparent: true,
+                    opacity: 0.8 + Math.random() * 0.2
+                });
+
+                const mesh = new THREE.Mesh(geometry, material);
+                const position = this.calculateVoxelPosition(flower, index, total);
+                
+                mesh.position.copy(position);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+
+                this.scene.add(mesh);
+
+                // Physics body
+                const shape = new CANNON.Box(new CANNON.Vec3(0.25, 0.25, 0.25));
+                const body = new CANNON.Body({ mass: 1 });
+                body.addShape(shape);
+                body.position.copy(position);
+                this.world.addBody(body);
+
+                return {
+                    mesh: mesh,
+                    body: body,
+                    flower: flower,
+                    semanticWeight: Math.random() * 10 + 5
+                };
+            }
+
+            calculateVoxelPosition(flower, index, total) {
+                const position = new THREE.Vector3();
+                const t = index / total;
+                const height = t * 10 * flower.complexity;
+
+                switch (flower.type) {
+                    case 'quadruple':
+                        const angle1 = t * Math.PI * 4;
+                        const radius1 = 2 + Math.sin(t * Math.PI * 2) * flower.complexity;
+                        position.set(
+                            Math.cos(angle1) * radius1,
+                            height,
+                            Math.sin(angle1) * radius1
+                        );
+                        break;
+
+                    case 'pentagonal':
+                        const angle2 = t * Math.PI * 2 * 5;
+                        const radius2 = 1.5 + Math.cos(t * Math.PI * 3) * flower.complexity;
+                        position.set(
+                            Math.cos(angle2) * radius2,
+                            height,
+                            Math.sin(angle2) * radius2
+                        );
+                        break;
+
+                    case 'rosaceae':
+                        const theta = t * Math.PI * 6;
+                        const r = 1 + Math.sin(theta * 3) * flower.complexity;
+                        position.set(
+                            r * Math.cos(theta),
+                            height + Math.sin(t * Math.PI * 4) * 0.5,
+                            r * Math.sin(theta)
+                        );
+                        break;
+
+                    case 'fractal':
+                        const level = Math.floor(t * 4);
+                        const localT = (t * 4) % 1;
+                        const fractalR = Math.pow(0.7, level) * (2 + flower.complexity);
+                        const fractalAngle = localT * Math.PI * 2 + level * 1.618;
+                        position.set(
+                            fractalR * Math.cos(fractalAngle),
+                            height * (1 + level * 0.3),
+                            fractalR * Math.sin(fractalAngle)
+                        );
+                        break;
+
+                    case 'organic':
+                    default:
+                        const organicAngle = t * Math.PI * 3 + Math.sin(t * Math.PI * 7) * 0.5;
+                        const organicRadius = 1.5 + Math.sin(t * Math.PI * 5) * flower.complexity * 0.8;
+                        position.set(
+                            organicRadius * Math.cos(organicAngle) + (Math.random() - 0.5) * 0.3,
+                            height + Math.sin(t * Math.PI * 8) * 0.4,
+                            organicRadius * Math.sin(organicAngle) + (Math.random() - 0.5) * 0.3
+                        );
+                        break;
+                }
+
+                position.add(flower.center);
+                return position;
+            }
+
+            getVoxelColor(type, index, total) {
+                const t = index / total;
+                const hue = (t * 0.8 + this.getTypeHueOffset(type)) % 1;
+                const saturation = 0.7 + Math.random() * 0.3;
+                const lightness = 0.5 + t * 0.3;
+                
+                return new THREE.Color().setHSL(hue, saturation, lightness);
+            }
+
+            getTypeHueOffset(type) {
+                const offsets = {
+                    quadruple: 0.0,    // Red-Orange
+                    pentagonal: 0.16,  // Yellow
+                    rosaceae: 0.33,    // Green
+                    fractal: 0.66,     // Blue
+                    organic: 0.83      // Purple
+                };
+                return offsets[type] || 0;
+            }
+
+            runFractionalAnalysis() {
+                document.getElementById('analysisMode').textContent = 'Running...';
+                document.getElementById('analysisPanel').style.display = 'block';
+
+                // Simulate fractional FFT analysis
+                setTimeout(() => {
+                    const analysis = this.simulateFractionalAnalysis();
+                    this.displayAnalysisResults(analysis);
+                    this.applyAnalysisVisualization(analysis);
+                    document.getElementById('analysisMode').textContent = 'Complete';
+                }, 1000);
+            }
+
+            simulateFractionalAnalysis() {
+                const sessionData = this.generateMockSessionData();
+                
+                return {
+                    temporalPatterns: {
+                        dominantFrequency: Math.random() * 0.5 + 0.1,
+                        coherence: Math.random() * 0.8 + 0.2,
+                        entropy: Math.random() * 2 + 1
+                    },
+                    semanticStructures: {
+                        clusterCount: Math.floor(Math.random() * 5) + 2,
+                        averageDistance: Math.random() * 3 + 1,
+                        connectivity: Math.random() * 0.7 + 0.3
+                    },
+                    emergentProperties: {
+                        fractalDimension: Math.random() * 0.5 + 1.5,
+                        selfSimilarity: Math.random() * 0.8 + 0.2,
+                        growthRate: Math.random() * 0.3 + 0.1
+                    },
+                    hyperstitiousSignatures: [
+                        'Temporal loop detected at α=0.618',
+                        'Causal inversion in semantic layer',
+                        'Emergent consciousness pattern',
+                        'Fractal recursion depth: 4.2'
+                    ]
+                };
+            }
+
+            generateMockSessionData() {
+                return {
+                    threads: this.flowers.map(flower => ({
+                        complexity: flower.complexity,
+                        interactions: flower.voxelCount,
+                        contentAnalysis: {
+                            semanticWeight: Math.random() * 10 + 5,
+                            abstractionLevel: Math.random(),
+                            technicalDensity: Math.random()
+                        },
+                        type: flower.type
+                    }))
+                };
+            }
+
+            displayAnalysisResults(analysis) {
+                const resultsDiv = document.getElementById('analysisResults');
+                resultsDiv.innerHTML = `
+                    <div class="pattern-item">
+                        <strong>Temporal:</strong><br>
+                        Freq: ${analysis.temporalPatterns.dominantFrequency.toFixed(3)}<br>
+                        Coherence: ${analysis.temporalPatterns.coherence.toFixed(3)}
+                    </div>
+                    <div class="pattern-item">
+                        <strong>Semantic:</strong><br>
+                        Clusters: ${analysis.semanticStructures.clusterCount}<br>
+                        Connectivity: ${analysis.semanticStructures.connectivity.toFixed(3)}
+                    </div>
+                    <div class="pattern-item">
+                        <strong>Emergent:</strong><br>
+                        Fractal Dim: ${analysis.emergentProperties.fractalDimension.toFixed(3)}<br>
+                        Self-Similarity: ${analysis.emergentProperties.selfSimilarity.toFixed(3)}
+                    </div>
+                    <div class="pattern-item">
+                        <strong>🔮 Hyperstitious Signatures:</strong><br>
+                        ${analysis.hyperstitiousSignatures.map(sig => `• ${sig}`).join('<br>')}
+                    </div>
+                `;
+            }
+
+            applyAnalysisVisualization(analysis) {
+                // Apply visual effects based on analysis
+                this.voxels.forEach((voxel, index) => {
+                    const t = index / this.voxels.length;
+                    
+                    // Temporal modulation
+                    const temporalScale = 1 + Math.sin(t * analysis.temporalPatterns.dominantFrequency * Math.PI * 2) * 0.2;
+                    voxel.mesh.scale.setScalar(temporalScale);
+                    
+                    // Semantic clustering effect
+                    const clusterIndex = Math.floor(t * analysis.semanticStructures.clusterCount);
+                    const hue = (clusterIndex / analysis.semanticStructures.clusterCount) * 0.8;
+                    voxel.mesh.material.color.setHSL(hue, 0.8, 0.6);
+                    
+                    // Emergent property visualization
+                    const emergentOffset = Math.sin(t * Math.PI * analysis.emergentProperties.fractalDimension) * 
+                                         analysis.emergentProperties.selfSimilarity;
+                    voxel.mesh.position.y += emergentOffset * 0.5;
+                });
+            }
+
+            clearGarden() {
+                this.flowers.forEach(flower => {
+                    flower.voxels.forEach(voxel => {
+                        this.scene.remove(voxel.mesh);
+                        this.world.removeBody(voxel.body);
+                    });
+                });
+                
+                this.flowers = [];
+                this.voxels = [];
+                this.updateStats();
+                
+                document.getElementById('analysisPanel').style.display = 'none';
+                document.getElementById('analysisMode').textContent = 'Ready';
+                
+                console.log('🗑️ Garden cleared');
+            }
+
+            togglePhysics() {
+                this.physicsEnabled = !this.physicsEnabled;
+                console.log(`⚡ Physics ${this.physicsEnabled ? 'enabled' : 'disabled'}`);
+            }
+
+            exportData() {
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    flowers: this.flowers.map(flower => ({
+                        type: flower.type,
+                        complexity: flower.complexity,
+                        voxelCount: flower.voxelCount,
+                        center: flower.center
+                    })),
+                    stats: {
+                        totalFlowers: this.flowers.length,
+                        totalVoxels: this.voxels.length
+                    }
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `substance_garden_${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                console.log('💾 Data exported');
+            }
+
+            updateStats() {
+                document.getElementById('flowerCount').textContent = this.flowers.length;
+                document.getElementById('voxelCount').textContent = this.voxels.length;
+            }
+
+            setupEventListeners() {
+                // Control event listeners
+                document.getElementById('generateFlower').addEventListener('click', () => this.generateFlower());
+                document.getElementById('runAnalysis').addEventListener('click', () => this.runFractionalAnalysis());
+                document.getElementById('clearGarden').addEventListener('click', () => this.clearGarden());
+                document.getElementById('exportData').addEventListener('click', () => this.exportData());
+                document.getElementById('togglePhysics').addEventListener('click', () => this.togglePhysics());
+
+                // Range input updates
+                document.getElementById('complexity').addEventListener('input', (e) => {
+                    document.getElementById('complexityValue').textContent = e.target.value;
+                });
+
+                document.getElementById('physicsStrength').addEventListener('input', (e) => {
+                    document.getElementById('physicsValue').textContent = e.target.value;
+                });
+
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+
+                // Mouse controls
+                let mouseX = 0, mouseY = 0;
+                document.addEventListener('mousemove', (event) => {
+                    mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+                    mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+                    
+                    // Subtle camera movement
+                    this.camera.position.x += (mouseX * 2 - this.camera.position.x) * 0.01;
+                    this.camera.position.y += (mouseY * 2 + 20 - this.camera.position.y) * 0.01;
+                    this.camera.lookAt(0, 5, 0);
+                });
+            }
+
+            animate() {
+                this.animationId = requestAnimationFrame(() => this.animate());
+
+                const deltaTime = this.clock.getDelta();
+                
+                // Update physics
+                if (this.physicsEnabled) {
+                    this.world.step(deltaTime);
+                    
+                    // Sync physics with visuals
+                    this.voxels.forEach(voxel => {
+                        voxel.mesh.position.copy(voxel.body.position);
+                        voxel.mesh.quaternion.copy(voxel.body.quaternion);
+                    });
+                }
+
+                // Apply physics strength
+                const physicsStrength = parseFloat(document.getElementById('physicsStrength').value);
+                this.world.gravity.y = -9.82 * physicsStrength;
+
+                // Animate flowers
+                const time = this.clock.elapsedTime;
+                this.voxels.forEach((voxel, index) => {
+                    const t = time + index * 0.1;
+                    
+                    // Gentle floating animation
+                    if (!this.physicsEnabled) {
+                        voxel.mesh.position.y += Math.sin(t) * 0.002;
+                    }
+                    
+                    // Rotation based on semantic weight
+                    voxel.mesh.rotation.y += voxel.semanticWeight * 0.001;
+                });
+
+                // Update FPS counter
+                this.frameCount++;
+                if (time - this.lastFPSUpdate > 1) {
+                    const fps = Math.round(this.frameCount / (time - this.lastFPSUpdate));
+                    document.getElementById('fps').textContent = fps;
+                    this.frameCount = 0;
+                    this.lastFPSUpdate = time;
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Initialize application when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🌸 Initializing Substance Voxel Garden...');
+            new SubstanceVoxelGarden();
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,56 @@
+name: 🌸 Deploy Static Substance Voxel Flowers
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🌱 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 📁 Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: 🌸 Prepare static files
+      run: |
+        mkdir -p dist
+        cp index.html dist/
+        if [ -f live-demo.html ]; then cp live-demo.html dist/; fi
+        if [ -f debug_voxel_flowers.html ]; then cp debug_voxel_flowers.html dist/; fi
+        if [ -f README.md ]; then cp README.md dist/; fi
+        echo "🌺 Static Substance Voxel Flowers deployed at $(date)" > dist/build-info.txt
+        echo "🔬 CDN-based deployment with fractional FFT analysis" >> dist/build-info.txt
+        echo "🚀 Workaround for npm package corruption issues" >> dist/build-info.txt
+        
+    - name: 🚀 Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './dist'
+        
+    - name: 🌸 Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+      
+    - name: ✨ Deployment success
+      run: |
+        echo "🌺 Static Substance Voxel Flowers deployed successfully!"
+        echo "🔗 Available at: ${{ steps.deployment.outputs.page_url }}"
