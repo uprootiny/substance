@@ -6,6 +6,7 @@ import { EventSystem } from './core/EventSystem.js';
 import { DataFlow } from './core/DataFlow.js';
 import { SonicResonance } from './audio/SonicResonance.js';
 import { RepositoryScanner } from './ecosystem/RepositoryScanner.js';
+import { PatternLensSystem } from './patterns/PatternLensSystem.js';
 
 class SubstanceVoxelFlowers {
     constructor() {
@@ -30,6 +31,7 @@ class SubstanceVoxelFlowers {
         this.dataFlow = new DataFlow(this.eventSystem);
         this.sonicResonance = new SonicResonance(this.eventSystem);
         this.repositoryScanner = new RepositoryScanner(this.eventSystem);
+        this.patternLensSystem = new PatternLensSystem(this.eventSystem);
         
         // Initialize components with event system integration
         this.voxelGarden = null;
@@ -130,6 +132,9 @@ class SubstanceVoxelFlowers {
         // Add sonic listening controls
         this.addSonicControls();
         
+        // Add advanced pattern lens controls
+        this.addPatternLensControls();
+        
         // Handle window resize
         window.addEventListener('resize', () => this.voxelGarden.handleResize());
     }
@@ -149,6 +154,290 @@ class SubstanceVoxelFlowers {
         controlsParent.appendChild(whirrBtn);
 
         this.ui.whirrBtn = whirrBtn;
+    }
+
+    addPatternLensControls() {
+        // Create lens control panel
+        const lensPanel = document.createElement('div');
+        lensPanel.id = 'lens-control-panel';
+        lensPanel.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 15px;
+            color: #e1e8ed;
+            font-family: monospace;
+            font-size: 0.85rem;
+            max-width: 300px;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        `;
+        
+        // Lens selector
+        const lensSelect = document.createElement('select');
+        lensSelect.id = 'lensSelect';
+        lensSelect.style.cssText = `
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #e1e8ed;
+            border-radius: 4px;
+        `;
+        
+        const lensOptions = [
+            { value: 'none', text: '🔍 No Lens Applied' },
+            { value: 'quality', text: '⭐ Quality Lens (90%+)' },
+            { value: 'temporal', text: '⏰ Temporal Lens (Recent)' },
+            { value: 'complexity', text: '🧠 Complexity Lens (High)' },
+            { value: 'health', text: '💚 Health Lens (All)' },
+            { value: 'innovation', text: '🚀 Innovation Lens (Experimental)' }
+        ];
+        
+        lensOptions.forEach(option => {
+            const opt = document.createElement('option');
+            opt.value = option.value;
+            opt.textContent = option.text;
+            lensSelect.appendChild(opt);
+        });
+        
+        // Filter controls
+        const filterContainer = document.createElement('div');
+        filterContainer.innerHTML = `
+            <div style="margin: 10px 0; color: #94a3b8; font-size: 0.8rem;">FILTERS:</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 5px 0;">
+                <label>Quality Min:<input type="range" id="qualityFilter" min="0" max="100" value="80" style="width: 100%;"></label>
+                <label>Max Issues:<input type="range" id="issuesFilter" min="0" max="10" value="5" style="width: 100%;"></label>
+            </div>
+        `;
+        
+        // Hash morph controls
+        const morphContainer = document.createElement('div');
+        morphContainer.innerHTML = `
+            <div style="margin: 10px 0; color: #94a3b8; font-size: 0.8rem;">HASH MORPHING:</div>
+            <select id="morphType" style="width: 100%; padding: 4px; background: #0f172a; border: 1px solid #334155; color: #e1e8ed; margin: 2px 0;">
+                <option value="none">🔒 No Morphing</option>
+                <option value="evolution">⏳ Temporal Evolution</option>
+                <option value="interaction">👆 User Interaction</option>
+                <option value="quality">💎 Quality-based</option>
+            </select>
+            <button id="morphBtn" style="width: 100%; padding: 8px; margin: 5px 0; background: linear-gradient(45deg, #00d9ff, #7dd3fc); border: none; border-radius: 4px; color: #0f172a; cursor: pointer;">
+                🔄 Apply Morphing
+            </button>
+        `;
+        
+        // Pattern iterator controls
+        const iteratorContainer = document.createElement('div');
+        iteratorContainer.innerHTML = `
+            <div style="margin: 10px 0; color: #94a3b8; font-size: 0.8rem;">PATTERN ITERATION:</div>
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center;">
+                <input type="range" id="iterationSpeed" min="100" max="5000" value="1000" style="width: 100%;">
+                <button id="iterateBtn" style="padding: 4px 8px; background: linear-gradient(45deg, #00ff88, #34d399); border: none; border-radius: 4px; color: #0f172a; cursor: pointer; font-size: 0.8rem;">
+                    ▶ Start
+                </button>
+            </div>
+        `;
+        
+        // Analytics display
+        const analyticsContainer = document.createElement('div');
+        analyticsContainer.innerHTML = `
+            <div style="margin: 10px 0; color: #94a3b8; font-size: 0.8rem;">LENS ANALYTICS:</div>
+            <div id="lensAnalytics" style="font-size: 0.75rem; color: #7dd3fc;">
+                No lens usage yet
+            </div>
+        `;
+        
+        // Assemble panel
+        lensPanel.innerHTML = `
+            <div style="color: #00d9ff; font-weight: bold; margin-bottom: 10px;">🔬 PATTERN LENS SYSTEM</div>
+        `;
+        lensPanel.appendChild(lensSelect);
+        lensPanel.appendChild(filterContainer);
+        lensPanel.appendChild(morphContainer);
+        lensPanel.appendChild(iteratorContainer);
+        lensPanel.appendChild(analyticsContainer);
+        
+        // Add to DOM
+        document.body.appendChild(lensPanel);
+        
+        // Store references
+        this.ui.lensPanel = lensPanel;
+        this.ui.lensSelect = lensSelect;
+        this.ui.qualityFilter = document.getElementById('qualityFilter');
+        this.ui.issuesFilter = document.getElementById('issuesFilter');
+        this.ui.morphType = document.getElementById('morphType');
+        this.ui.morphBtn = document.getElementById('morphBtn');
+        this.ui.iterateBtn = document.getElementById('iterateBtn');
+        this.ui.iterationSpeed = document.getElementById('iterationSpeed');
+        this.ui.lensAnalytics = document.getElementById('lensAnalytics');
+        
+        // Add event listeners
+        this.setupLensEventListeners();
+    }
+
+    setupLensEventListeners() {
+        // Lens selection change
+        this.ui.lensSelect.addEventListener('change', (e) => {
+            this.applySelectedLens();
+            this.updateLensAnalytics();
+        });
+        
+        // Filter changes
+        this.ui.qualityFilter.addEventListener('input', () => {
+            this.applySelectedLens();
+        });
+        
+        this.ui.issuesFilter.addEventListener('input', () => {
+            this.applySelectedLens();
+        });
+        
+        // Hash morphing
+        this.ui.morphBtn.addEventListener('click', () => {
+            this.applyHashMorphing();
+        });
+        
+        // Pattern iteration
+        this.ui.iterateBtn.addEventListener('click', () => {
+            this.togglePatternIteration();
+        });
+        
+        // Update analytics every 5 seconds
+        setInterval(() => {
+            this.updateLensAnalytics();
+        }, 5000);
+    }
+
+    applySelectedLens() {
+        const lensType = this.ui.lensSelect.value;
+        const qualityMin = parseInt(this.ui.qualityFilter.value);
+        const issuesMax = parseInt(this.ui.issuesFilter.value);
+        
+        if (lensType === 'none') {
+            // Generate standard flower
+            this.generateFlowerFromSampleReactive();
+            return;
+        }
+        
+        // Get repository data
+        const repoData = this.getQuadrupleHelixData();
+        
+        // Apply filters first
+        const filteredRepos = this.patternLensSystem.filterRepositories(repoData.threads, {
+            'quality-threshold': qualityMin,
+            'issues': issuesMax
+        });
+        
+        // Apply lens transformation
+        const lensedRepos = this.patternLensSystem.applyLens(lensType, filteredRepos);
+        
+        // Generate flowers from lensed data
+        this.generateFlowersFromLensedData(lensedRepos);
+        
+        console.log(`🔬 Applied ${lensType} lens to ${lensedRepos.length} repositories`);
+    }
+
+    applyHashMorphing() {
+        const morphType = this.ui.morphType.value;
+        if (morphType === 'none') return;
+        
+        const repoData = this.getQuadrupleHelixData();
+        const morphFactor = morphType === 'evolution' ? Date.now() : 
+                           morphType === 'interaction' ? this.interactionCount || 0 :
+                           morphType === 'quality' ? repoData.avgQuality : 0;
+        
+        // Morph all repository hashes
+        const morphedRepos = repoData.threads.map(repo => 
+            this.patternLensSystem.morphHash(repo, morphType, morphFactor)
+        );
+        
+        // Generate flowers with morphed patterns
+        this.generateFlowersFromLensedData(morphedRepos);
+        
+        console.log(`🔄 Applied ${morphType} morphing with factor ${morphFactor}`);
+    }
+
+    togglePatternIteration() {
+        if (!this.patternIterator) {
+            // Start iteration
+            const repoData = this.getQuadrupleHelixData();
+            const speed = parseInt(this.ui.iterationSpeed.value);
+            
+            const iteratorId = this.patternLensSystem.createPatternIterator(repoData.threads, speed);
+            this.patternIterator = iteratorId;
+            
+            // Listen for iteration events
+            this.eventSystem.subscribe('pattern.iteration', (event) => {
+                this.generateFlowerFromRepository(event.payload.repository);
+            });
+            
+            this.patternLensSystem.startPatternIteration(iteratorId);
+            this.ui.iterateBtn.textContent = '⏸ Stop';
+            
+            console.log(`▶ Started pattern iteration with ${speed}ms interval`);
+        } else {
+            // Stop iteration
+            const iterator = this.patternLensSystem.patternIterators.get(this.patternIterator);
+            if (iterator) {
+                iterator.active = false;
+            }
+            this.patternIterator = null;
+            this.ui.iterateBtn.textContent = '▶ Start';
+            
+            console.log('⏸ Stopped pattern iteration');
+        }
+    }
+
+    generateFlowersFromLensedData(lensedRepos) {
+        // Clear existing flowers
+        if (this.voxelGarden) {
+            this.voxelGarden.clearAll();
+        }
+        
+        // Generate flower for each lensed repository
+        lensedRepos.forEach((repo, index) => {
+            setTimeout(() => {
+                this.generateFlowerFromRepository(repo);
+            }, index * 200); // Stagger generation
+        });
+    }
+
+    generateFlowerFromRepository(repo) {
+        // Convert repository data to tmux-style data for existing pipeline
+        const tmuxStyleData = {
+            threads: [repo],
+            branches: 1,
+            depth: 1,
+            narrative: `repository-${repo.id}`
+        };
+        
+        // Emit through reactive pipeline
+        this.eventSystem.emit('tmux.data.received', tmuxStyleData, {
+            semanticWeight: repo.emphasis || 1.0,
+            urgency: repo.urgency || 'normal',
+            lensApplied: true
+        });
+    }
+
+    updateLensAnalytics() {
+        const analytics = this.patternLensSystem.getLensAnalytics();
+        
+        if (analytics.totalAccesses === 0) {
+            this.ui.lensAnalytics.innerHTML = 'No lens usage yet';
+            return;
+        }
+        
+        const topLens = analytics.lensUsage[0];
+        const analyticsHtml = `
+            <div>Total Accesses: <span style="color: #00ff88;">${analytics.totalAccesses}</span></div>
+            <div>Most Used: <span style="color: #00d9ff;">${topLens.lens}</span> (${topLens.percentage}%)</div>
+            <div>Active Lenses: <span style="color: #fbbf24;">${analytics.lensUsage.length}</span></div>
+        `;
+        
+        this.ui.lensAnalytics.innerHTML = analyticsHtml;
     }
 
     toggleSonicListening() {
